@@ -7,10 +7,10 @@
     "noOnline": false,
     "noBanner": false
   },
-  "author": "liyanfeng(pod4g)",
-  "email": "pod4dop@gmail.com",
-  "name": "hiper",
-  "version": "0.0.16",
+  "author": "yinxueyuan",
+  "email": "yinxueyuan233@gmail.com",
+  "name": "hiper-weimai",
+  "version": "0.0.19",
   "description": "🚀 A statistical analysis tool for performance testing",
   "keywords": [
     "statistical",
@@ -42,7 +42,7 @@
     "authors": "git log --format='%aN <%aE>' | sort -u"
   },
   "bin": {
-    "hiper": "./bin/index.js"
+    "hiper-weimai": "./bin/index.js"
   },
   "license": "MIT",
   "dependencies": {
@@ -51,7 +51,7 @@
     "clui": "^0.3.6",
     "commander": "^2.15.1",
     "figlet": "^1.2.0",
-    "puppeteer": "^1.4.0",
+    "puppeteer": "^1.19.0",
     "semver": "^5.5.0"
   },
   "devDependencies": {
