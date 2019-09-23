@@ -126,9 +126,11 @@ class Analyzer {
     let totalDOMReadyTime = 0
     // onload时间
     let totalLoadTime = 0
+    // 首屏时间
+    let totalFirstScreenTime = 0
 
     for (let item of data) {
-      let { total } = JSON.parse(item)
+      let { pageData, firstScreenTime } = JSON.parse(item)
       // console.log(entries)
       let {
         navigationStart,
@@ -146,7 +148,7 @@ class Analyzer {
         domComplete,
         // loadEventStart,
         loadEventEnd
-      } = total.timing
+      } = pageData.timing
 
       totalDNSTime += this.getDNSTime(domainLookupStart, domainLookupEnd)
       totalTCPTime += this.getTCPTime(connectStart, connectEnd)
@@ -156,6 +158,7 @@ class Analyzer {
       totalWhiteScreenTime += this.getWhiteScreenTime(navigationStart, domInteractive)
       totalDOMReadyTime += this.getDOMReadyTime(navigationStart, domContentLoadedEventEnd)
       totalLoadTime += this.getLoadTime(navigationStart, loadEventEnd)
+      totalFirstScreenTime += firstScreenTime
     }
 
     // console.log('DNS lookup time:', Util.formatMSToHumanReadable(this.getAverage(totalDNSTime, length)))
@@ -177,7 +180,7 @@ class Analyzer {
     // console.log(`\n`)
 
     return {
-      total: {
+      pageData: {
         dnsTime: Util.formatMSToHumanReadable(this.getAverage(totalDNSTime, length)),
         tcpTime: Util.formatMSToHumanReadable(this.getAverage(totalTCPTime, length)),
         TTFB: Util.formatMSToHumanReadable(this.getAverage(totalTTFBTime, length)),
@@ -185,7 +188,8 @@ class Analyzer {
         whiteScreenTime: Util.formatMSToHumanReadable(this.getAverage(totalWhiteScreenTime, length)),
         DOMReadyTime: Util.formatMSToHumanReadable(this.getAverage(totalDOMReadyTime, length)),
         afterDOMReadyDownloadTime: Util.formatMSToHumanReadable(this.getAverage(totalAfterDOMReadyTheDownloadTimeOfTheRes, length)),
-        loadTime: Util.formatMSToHumanReadable(this.getAverage(totalLoadTime, length))
+        loadTime: Util.formatMSToHumanReadable(this.getAverage(totalLoadTime, length)),
+        firstScreenTime: Util.formatMSToHumanReadable(this.getAverage(totalFirstScreenTime, length))
       }
     }
   }

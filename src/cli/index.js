@@ -17,10 +17,10 @@ module.exports = class Cli {
       data = require(filePath)
       if (data) {
         let { noBanner, noCache, noJavascript, noOnline } = data
-        data.banner = !noBanner
-        data.cache = !noCache
-        data.javascript = !noJavascript
-        data.online = !noOnline
+        data.banner = !(noBanner === 'true')
+        data.cache = !(noCache === 'true')
+        data.javascript = !(noJavascript === 'true')
+        data.online = !(noOnline === 'true')
         delete data.noBanner
         delete data.noCache
         delete data.noJavascript

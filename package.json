@@ -10,7 +10,7 @@
   "author": "yinxueyuan",
   "email": "yinxueyuan233@gmail.com",
   "name": "hiper-weimai",
-  "version": "0.0.19",
+  "version": "0.1.11",
   "description": "🚀 A statistical analysis tool for performance testing",
   "keywords": [
     "statistical",
@@ -46,11 +46,13 @@
   },
   "license": "MIT",
   "dependencies": {
+    "auto-compute-first-screen-time": "^5.7.7",
     "chalk": "^2.4.1",
     "clear": "^0.1.0",
     "clui": "^0.3.6",
     "commander": "^2.15.1",
     "figlet": "^1.2.0",
+    "fs-extra": "^8.1.0",
     "puppeteer": "^1.19.0",
     "semver": "^5.5.0"
   },
