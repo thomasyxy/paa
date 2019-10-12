@@ -79,8 +79,9 @@ module.exports = class Performance {
       requests.count.error = requests.count.error + 1
     }
     // 请求响应事件回调
-    function logSuccessRequest(interceptedRequest) {
+    async function logSuccessRequest(interceptedRequest) {
       // let response = interceptedRequest.response()
+      // let res =  await response.buffer()
       // response.text().then((res) => {
       //   requestObject[interceptedRequest.url()].response = {
       //     headers: JSON.stringify(response.headers()), // 响应头
@@ -90,7 +91,7 @@ module.exports = class Performance {
       //   }
       //   requestObject[interceptedRequest.url()].endTime = Date.parse(new Date()) //请求返回时间
       // })
-      requests.count.success = requests.count.success + 1
+      // requests.count.success = requests.count.success + 1
     }
     function getAutoComputeFirstScreenTime () {
       const autoComputeFirstScreenTime = require('auto-compute-first-screen-time')

@@ -68,6 +68,14 @@ class Analyzer {
   }
   /**
     *
+    * @param {*} domContentLoadedEventStart
+    * @param {*} domContentLoadedEventEnd
+    */
+  getDOMContentLoadedTime (domContentLoadedEventStart, domContentLoadedEventEnd) {
+    return domContentLoadedEventEnd - domContentLoadedEventStart
+  }
+  /**
+    *
     * @param {*} navigationStart
     * @param {*} domContentLoadedEventEnd
     */
@@ -122,6 +130,8 @@ class Analyzer {
     let totalAfterDOMReadyTheDownloadTimeOfTheRes = 0
     // 白屏时间
     let totalWhiteScreenTime = 0
+    // DOMContentLoaded时间
+    let totalDOMContentLoadedTime = 0
     // domready时间
     let totalDOMReadyTime = 0
     // onload时间
@@ -143,7 +153,7 @@ class Analyzer {
         responseEnd,
         // domLoading,
         domInteractive,
-        // domContentLoadedEventStart,
+        domContentLoadedEventStart,
         domContentLoadedEventEnd,
         domComplete,
         // loadEventStart,
@@ -156,6 +166,7 @@ class Analyzer {
       totalDownloadTime += this.getDownloadTime(responseStart, responseEnd)
       totalAfterDOMReadyTheDownloadTimeOfTheRes += this.getAfterDOMReadyTheDownloadTimeOfTheRes(domInteractive, domComplete)
       totalWhiteScreenTime += this.getWhiteScreenTime(navigationStart, domInteractive)
+      totalDOMContentLoadedTime += this.getDOMContentLoadedTime(domContentLoadedEventStart, domContentLoadedEventEnd)
       totalDOMReadyTime += this.getDOMReadyTime(navigationStart, domContentLoadedEventEnd)
       totalLoadTime += this.getLoadTime(navigationStart, loadEventEnd)
       totalFirstScreenTime += firstScreenTime
@@ -186,6 +197,7 @@ class Analyzer {
         TTFB: Util.formatMSToHumanReadable(this.getAverage(totalTTFBTime, length)),
         pageDownloadTime: Util.formatMSToHumanReadable(this.getAverage(totalDownloadTime, length)),
         whiteScreenTime: Util.formatMSToHumanReadable(this.getAverage(totalWhiteScreenTime, length)),
+        DOMContentLoadedTime: Util.formatMSToHumanReadable(this.getAverage(totalDOMContentLoadedTime, length)),
         DOMReadyTime: Util.formatMSToHumanReadable(this.getAverage(totalDOMReadyTime, length)),
         afterDOMReadyDownloadTime: Util.formatMSToHumanReadable(this.getAverage(totalAfterDOMReadyTheDownloadTimeOfTheRes, length)),
         loadTime: Util.formatMSToHumanReadable(this.getAverage(totalLoadTime, length)),
