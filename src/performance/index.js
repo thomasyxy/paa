@@ -10,9 +10,11 @@ module.exports = class Performance {
     this.times = 0
     this.log = {}
   }
-
+  
   async run (opts = this.opts) {
+    console.log(1)
     let startTimestamp = Date.now()
+    let loadsize = 0;
     let {
       executablePath,
       url,
@@ -40,6 +42,26 @@ module.exports = class Performance {
 
     const browser = await puppeteer.launch(launchOpts)
     let tab = await browser.newPage()
+    const client = await tab.target().createCDPSession();
+    // const clientPms = await client.send('window.performance');
+    // console.log('back:', clientPms)
+    // await client.send('Performance.enable')
+    // const response = await client.send('Performance.getMetrics');
+    // console.log('CDPSession' + JSON.stringify(response, null, 2));
+    let str = ''
+    let loadCount = 0
+    await client.send('Network.enable');
+    client.on('Network.responseReceived', (e) => {
+      // if (!e.response.headers['content-type']) {
+      if (loadCount < 5) {  
+        console.log(e)
+      }
+      // }
+      let length = ((+e.response.headers['content-length'] || 0)+ e.response['encodedDataLength'])
+      str += (e.response['url'] + '--' + (e.response.headers['content-type'] ||e.response.headers['Content-type']) + '--' + (length / 1024) +';\n\r')
+      loadsize += length
+      loadCount += 1
+    })
     let requestObject = {}
     let requests = {
       list: [],
@@ -79,8 +101,13 @@ module.exports = class Performance {
       requests.count.error = requests.count.error + 1
     }
     // 请求响应事件回调
-    function logSuccessRequest(interceptedRequest) {
+    async function logSuccessRequest(interceptedRequest) {
       // let response = interceptedRequest.response()
+      // let res = await response.buffer()
+      // console.log(response.url())
+      // // console.log(res)
+      // console.log(res.length)
+      // console.log(res.byteLength(str, 'utf8'))
       // response.text().then((res) => {
       //   requestObject[interceptedRequest.url()].response = {
       //     headers: JSON.stringify(response.headers()), // 响应头
@@ -90,7 +117,7 @@ module.exports = class Performance {
       //   }
       //   requestObject[interceptedRequest.url()].endTime = Date.parse(new Date()) //请求返回时间
       // })
-      requests.count.success = requests.count.success + 1
+      // requests.count.success = requests.count.success + 1
     }
     function getAutoComputeFirstScreenTime () {
       const autoComputeFirstScreenTime = require('auto-compute-first-screen-time')
@@ -141,6 +168,9 @@ module.exports = class Performance {
         return loadPromise
       })
 
+      console.log('AllLength:', str, loadsize / 1024)
+      console.log('AllCount:', loadCount)
+
       for(var i in requestObject){
         requests.list.push(requestObject[i]);
       }
@@ -184,7 +214,6 @@ module.exports = class Performance {
         });
       });
     });
-
     await tab.goto(url, { timeout: 5000, waitUntil: 'load' })
     global.__hiper__.runInterval = Date.now() - startTimestamp
     // console.log(`跑完 ${global.__hiper__.url} 全部性能测试用时：${(Date.now() - startTimestamp) / 1000}s`)
