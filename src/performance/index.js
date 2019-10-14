@@ -12,8 +12,9 @@ module.exports = class Performance {
   }
   
   async run (opts = this.opts) {
-    let startTimestamp = Date.now()
-    let loadsize = 0;
+    let startTimestamp = Date.now() // 开始时间
+    let loadsize = 0; // 加载资源大小
+    // 获取传递参数
     let {
       executablePath,
       url,
@@ -27,6 +28,7 @@ module.exports = class Performance {
       online
     } = opts
 
+    // puppeteer默认配置项
     let launchOpts = {
       headless,
       // headless: false,
@@ -35,26 +37,8 @@ module.exports = class Performance {
     }
     let requestTimeList = []
 
-    if (executablePath) {
-      launchOpts.executablePath = executablePath
-    }
-
-    const browser = await puppeteer.launch(launchOpts)
-    let tab = await browser.newPage()
-    const client = await tab.target().createCDPSession();
-    // const clientPms = await client.send('window.performance');
-    // console.log('back:', clientPms)
-    // await client.send('Performance.enable')
-    // const response = await client.send('Performance.getMetrics');
-    // console.log('CDPSession' + JSON.stringify(response, null, 2));
-    let str = ''
-    let loadCount = 0
-    await client.send('Network.enable');
-    client.on('Network.loadingFinished', (e) => {
-      loadsize += e.encodedDataLength
-      loadCount += 1
-    })
     let requestObject = {}
+    // 请求结果初始参数
     let requests = {
       list: [],
       count: {
@@ -67,6 +51,25 @@ module.exports = class Performance {
         full: 0
       }
     }
+
+    if (executablePath) {
+      launchOpts.executablePath = executablePath
+    }
+
+    // 启动浏览器进程
+    const browser = await puppeteer.launch(launchOpts)
+
+    // 打开tab
+    const tab = await browser.newPage()
+
+    // 建立CDP连接，开启网络请求相关功能
+    const client = await tab.target().createCDPSession();
+    await client.send('Network.enable');
+
+    // 监听加载事件,统计资源大小
+    client.on('Network.loadingFinished', (e) => {
+      loadsize += e.encodedDataLength
+    })
     
     let settingTasks = [
       tab.setCacheEnabled(cache),
@@ -136,6 +139,7 @@ module.exports = class Performance {
       })
       this.times = this.times + 1
       
+      // 页面内部执行脚本
       const result = await tab.evaluate(async() => {
         const loadPromise = new Promise((resolve, reject) => {
           let pageData = window.performance
@@ -161,17 +165,7 @@ module.exports = class Performance {
         requests.list.push(requestObject[i]);
       }
 
-      let resultObj = JSON.parse(result)
-      
-
-      let timeList = requestTimeList.filter(item => item < resultObj.firstScreenTimestamp)
-
-      // console.log(resultObj.firstScreenTimestamp)
-
-      // console.log('requestTimeList: ' + requestTimeList);
-      // console.log('timeList: ' + timeList);
-
-      requests.count.firstScreen = timeList.length
+      requests.count.firstScreen = requestTimeList.filter(item => item < JSON.parse(result).firstScreenTimestamp).length
       requests.size.full = loadsize / 1024
       this.log = {
         page: analyzer.statistics(result).pageData,
@@ -182,7 +176,9 @@ module.exports = class Performance {
         tab.once('load', loadHandler)
         await tab.goto(url, { timeout: 5000, waitUntil: 'load' })
       } else {
+        // 完成后关闭浏览器
         setTimeout(() => browser.close())
+        // 输出最终结果
         console.log(JSON.stringify(this.log))
       }
     }
@@ -201,8 +197,5 @@ module.exports = class Performance {
     });
     await tab.goto(url, { timeout: 5000, waitUntil: 'load' })
     global.__hiper__.runInterval = Date.now() - startTimestamp
-    // console.log(`跑完 ${global.__hiper__.url} 全部性能测试用时：${(Date.now() - startTimestamp) / 1000}s`)
-    // console.log(`\n---------------------- 🚀 各项指标平均耗时（${global.__hiper__.count}次）----------------------\n`)
-    // return performances
   }
 }
