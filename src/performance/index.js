@@ -184,6 +184,7 @@ module.exports = class Performance {
     }
     tab.once('load', loadHandler)
 
+    // 向网页顶层注入全局方法
     await tab.exposeFunction('readfile', async filePath => {
       return new Promise((resolve, reject) => {
         fs.readFile(path.join(__dirname, '..', filePath), 'utf8', (err, text) => {
@@ -195,6 +196,7 @@ module.exports = class Performance {
         });
       });
     });
+    // 跳转页面
     await tab.goto(url, { timeout: 5000, waitUntil: 'load' })
     global.__hiper__.runInterval = Date.now() - startTimestamp
   }
