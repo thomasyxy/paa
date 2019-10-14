@@ -12,7 +12,6 @@ module.exports = class Performance {
   }
   
   async run (opts = this.opts) {
-    console.log(1)
     let startTimestamp = Date.now()
     let loadsize = 0;
     let {
@@ -51,15 +50,8 @@ module.exports = class Performance {
     let str = ''
     let loadCount = 0
     await client.send('Network.enable');
-    client.on('Network.responseReceived', (e) => {
-      // if (!e.response.headers['content-type']) {
-      if (loadCount < 5) {  
-        console.log(e)
-      }
-      // }
-      let length = ((+e.response.headers['content-length'] || 0)+ e.response['encodedDataLength'])
-      str += (e.response['url'] + '--' + (e.response.headers['content-type'] ||e.response.headers['Content-type']) + '--' + (length / 1024) +';\n\r')
-      loadsize += length
+    client.on('Network.loadingFinished', (e) => {
+      loadsize += e.encodedDataLength
       loadCount += 1
     })
     let requestObject = {}
@@ -69,6 +61,9 @@ module.exports = class Performance {
         firstScreen: 0,
         error: 0,
         success: 0,
+        full: 0
+      },
+      size: {
         full: 0
       }
     }
@@ -162,9 +157,6 @@ module.exports = class Performance {
         return loadPromise
       })
 
-      console.log('AllLength:', str, loadsize / 1024)
-      console.log('AllCount:', loadCount)
-
       for(var i in requestObject){
         requests.list.push(requestObject[i]);
       }
@@ -180,8 +172,7 @@ module.exports = class Performance {
       // console.log('timeList: ' + timeList);
 
       requests.count.firstScreen = timeList.length
-      
-
+      requests.size.full = loadsize / 1024
       this.log = {
         page: analyzer.statistics(result).pageData,
         requests
