@@ -59,20 +59,20 @@ class Analyzer {
   }
   /**
     *
-    * @param {Number} domInteractive 准备加载新页面的起始时间
+    * @param {Number} navigationStart 准备加载新页面的起始时间
     * @param {Number} responseStart 返回用户代理从服务器、缓存、本地资源中，接收到第一个字节数据的时间
     * @returns {Number} 白屏时间
     */
-  getWhiteScreenTime (navigationStart, domInteractive) {
-    return domInteractive - navigationStart
+  getWhiteScreenTime (navigationStart, responseStart) {
+    return responseStart - navigationStart
   }
   /**
     *
     * @param {*} domContentLoadedEventStart
     * @param {*} domContentLoadedEventEnd
     */
-  getDOMContentLoadedTime (domContentLoadedEventStart, domContentLoadedEventEnd) {
-    return domContentLoadedEventEnd - domContentLoadedEventStart
+  getDOMContentLoadedTime (navigationStart, DOMContentLoadedTime) {
+    return DOMContentLoadedTime - navigationStart
   }
   /**
     *
@@ -140,7 +140,8 @@ class Analyzer {
     let totalFirstScreenTime = 0
 
     for (let item of data) {
-      let { pageData, firstScreenTime } = JSON.parse(item)
+      
+      let { pageData, firstScreenTime, DOMContentLoadedTime } = item
       // console.log(entries)
       let {
         navigationStart,
@@ -157,7 +158,7 @@ class Analyzer {
         domContentLoadedEventEnd,
         domComplete,
         // loadEventStart,
-        loadEventEnd
+        loadEventEnd,
       } = pageData.timing
 
       totalDNSTime += this.getDNSTime(domainLookupStart, domainLookupEnd)
@@ -165,11 +166,14 @@ class Analyzer {
       totalTTFBTime += this.getTTFB(requestStart, responseStart)
       totalDownloadTime += this.getDownloadTime(responseStart, responseEnd)
       totalAfterDOMReadyTheDownloadTimeOfTheRes += this.getAfterDOMReadyTheDownloadTimeOfTheRes(domInteractive, domComplete)
-      totalWhiteScreenTime += this.getWhiteScreenTime(navigationStart, domInteractive)
-      totalDOMContentLoadedTime += this.getDOMContentLoadedTime(domContentLoadedEventStart, domContentLoadedEventEnd)
+      totalWhiteScreenTime += this.getWhiteScreenTime(navigationStart, responseStart)
+      totalDOMContentLoadedTime += this.getDOMContentLoadedTime(navigationStart, DOMContentLoadedTime)
       totalDOMReadyTime += this.getDOMReadyTime(navigationStart, domContentLoadedEventEnd)
       totalLoadTime += this.getLoadTime(navigationStart, loadEventEnd)
       totalFirstScreenTime += firstScreenTime
+      console.log(DOMContentLoadedTime);
+      console.log(navigationStart);
+      
     }
 
     // console.log('DNS lookup time:', Util.formatMSToHumanReadable(this.getAverage(totalDNSTime, length)))

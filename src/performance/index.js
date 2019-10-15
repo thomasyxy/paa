@@ -9,11 +9,14 @@ module.exports = class Performance {
     this.opts = opts
     this.times = 0
     this.log = {}
+    this.loadReport = null
+    this.domContentLoadedReport = null
   }
   
   async run (opts = this.opts) {
     let startTimestamp = Date.now() // 开始时间
     let loadsize = 0; // 加载资源大小
+    let DOMContentLoadedTime = 0 // DOMContentLoaded时间
     // 获取传递参数
     let {
       executablePath,
@@ -80,7 +83,7 @@ module.exports = class Performance {
 
     // 请求发起事件回调
     function logRequest(interceptedRequest) {
-      requestTimeList.push(Date.parse(new Date()))
+      requestTimeList.push((new Date()).valueOf())
       requests.count.full = requests.count.full + 1
     }
     // 请求发起事件回调
@@ -91,7 +94,7 @@ module.exports = class Performance {
         method: interceptedRequest.method(), // 请求方式
         data: interceptedRequest.postData(), // 请求参数
         resourceType: interceptedRequest.resourceType(), // 请求资源类型
-        startTime: Date.parse(new Date()) // 请求发起时间
+        startTime: (new Date()).valueOf() // 请求发起时间
       }
     }
     // 请求失败事件回调
@@ -107,7 +110,7 @@ module.exports = class Performance {
       //     statusText: response.statusText(), // http状态码
       //     // json: res
       //   }
-      //   requestObject[interceptedRequest.url()].endTime = Date.parse(new Date()) //请求返回时间
+      //   requestObject[interceptedRequest.url()].endTime = (new Date()).valueOf() //请求返回时间
       // })
       // requests.count.success = requests.count.success + 1
     }
@@ -129,59 +132,92 @@ module.exports = class Performance {
       settingTasks.push(tab.setUserAgent(useragent))
     }
     await Promise.all(settingTasks)
-    
-    // 页面onload回调
-    let loadHandler = async () => {
+
+    const logResult = async () => {
+      
+      if (this.loadReport && this.domContentLoadedReport) {
+        
+        for(var i in requestObject){
+          requests.list.push(requestObject[i]);
+        }
+  
+        requests.size.full = loadsize / 1024
+        // console.log('firstScreenTime===========', this.domContentLoadedReport);
+        // console.log(this.domContentLoadedReport.firstScreenTime);
+        // 完成后关闭浏览器
+        setTimeout(() => browser.close())
+        
+        requests.count.firstScreen = requestTimeList.filter(item => item < this.domContentLoadedReport.firstScreenTimestamp).length
+        
+        this.log = {
+          page: {
+            ...analyzer.statistics({
+              ...JSON.parse(this.loadReport),
+              firstScreenTime: this.domContentLoadedReport.firstScreenTime,
+              DOMContentLoadedTime: DOMContentLoadedTime,
+            }).pageData,
+          },
+          requests
+        }
+        if (this.times < count) {
+          await Promise.all(settingTasks)
+          tab.once('load', loadHandler)
+          await tab.goto(url, { timeout: 5000, waitUntil: 'load' })
+        } else {
+          // 输出最终结果
+          console.log(JSON.stringify(this.log))
+        }
+      }
+    }
+
+    // 页面domcontentloaded回调
+    const domContentLoadedHandler = async () => {
+      DOMContentLoadedTime = (new Date()).valueOf()
       // 载入首屏统计脚本
       await tab.evaluate(async() => {
         const content = await window.readfile('/util/acfst.js');
         eval(content)
       })
-      this.times = this.times + 1
-      
+    
       // 页面内部执行脚本
-      const result = await tab.evaluate(async() => {
-        const loadPromise = new Promise((resolve, reject) => {
-          let pageData = window.performance
-          let entries = pageData.getEntries()
+      this.domContentLoadedReport = await tab.evaluate(async() => {
+        const domContentLoadedPromise = new Promise((resolve, reject) => {
           // 获取首屏时间
           window.autoComputeFirstScreenTime({
             onReport: function (result) {
               if (result.success) {
-                let firstScreenTime = result.firstScreenTime
-                let firstScreenTimestamp = Date.parse(new Date())
-                let data = JSON.stringify({ pageData, entries, firstScreenTime, firstScreenTimestamp })
-                resolve(data);
+                resolve({
+                  firstScreenTime: result.firstScreenTime,
+                  firstScreenTimestamp: (new Date()).valueOf()
+                });
               } else {
                 console.log(result);
               }
             }
           });
         }).then(result => result).catch(e => e);
+        return domContentLoadedPromise
+      })
+      logResult()
+    }
+    
+    // 页面onload回调
+    const loadHandler = async () => {
+      this.times = this.times + 1
+      
+      // 页面内部执行脚本
+      this.loadReport = await tab.evaluate(async() => {
+        const loadPromise = new Promise((resolve, reject) => {
+          const pageData = window.performance
+          const entries = pageData.getEntries()
+          const data = JSON.stringify({ pageData, entries })
+          resolve(data);
+        }).then(result => result).catch(e => e);
         return loadPromise
       })
-
-      for(var i in requestObject){
-        requests.list.push(requestObject[i]);
-      }
-
-      requests.count.firstScreen = requestTimeList.filter(item => item < JSON.parse(result).firstScreenTimestamp).length
-      requests.size.full = loadsize / 1024
-      this.log = {
-        page: analyzer.statistics(result).pageData,
-        requests
-      }
-      if (this.times < count) {
-        await Promise.all(settingTasks)
-        tab.once('load', loadHandler)
-        await tab.goto(url, { timeout: 5000, waitUntil: 'load' })
-      } else {
-        // 完成后关闭浏览器
-        setTimeout(() => browser.close())
-        // 输出最终结果
-        console.log(JSON.stringify(this.log))
-      }
+      logResult()
     }
+    tab.once('domcontentloaded', domContentLoadedHandler)
     tab.once('load', loadHandler)
 
     // 向网页顶层注入全局方法
@@ -196,8 +232,10 @@ module.exports = class Performance {
         });
       });
     });
+  
     // 跳转页面
     await tab.goto(url, { timeout: 5000, waitUntil: 'load' })
+
     global.__hiper__.runInterval = Date.now() - startTimestamp
   }
 }
