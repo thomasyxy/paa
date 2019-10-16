@@ -40,6 +40,8 @@ module.exports = class Performance {
     }
     let requestTimeList = []
 
+    let requestItemList = []
+    
     let requestObject = {}
     // 请求结果初始参数
     let requests = {
@@ -71,9 +73,39 @@ module.exports = class Performance {
 
     // 监听加载事件,统计资源大小
     client.on('Network.loadingFinished', (e) => {
+      requestItemList.map(l => {
+        if (l.requestId === e.requestId) {
+          l.encodedDataLength = e.encodedDataLength
+          l.timestampEnd = e.timestamp
+          l.timestamp = l.timestampEnd - l.timestampStart + l.wallTime
+        }
+        return l;
+      })
+      // console.log(e.requestId, e.timestamp)
       loadsize += e.encodedDataLength
     })
-    
+
+    client.on('Network.requestWillBeSent', (e) => {
+      // console.log(e)
+      requestItemList.push({
+        requestId: e.requestId,
+        url: e.request.url,
+        method: e.request.method,
+
+        wallTime: e.wallTime,
+        timestampStart: e.timestamp // 系统启动时间 MonotonicTime
+      })
+      // console.log(e.requestId, e.wallTime, e.timestamp, e.request.url)// , e.request.url, e.request.method)
+    })
+    client.on('Network.responseReceived', (e) => {
+      requestItemList.map(l => {
+        if (l.requestId === e.requestId) {
+          l.timing = e.response.timing
+          l.status = e.response.status
+        }
+        return l;
+      })
+    })
     let settingTasks = [
       tab.setCacheEnabled(cache),
       tab.setJavaScriptEnabled(javascript),
@@ -118,6 +150,37 @@ module.exports = class Performance {
       const autoComputeFirstScreenTime = require('auto-compute-first-screen-time')
       return autoComputeFirstScreenTime
     }
+    function computedAssetSize () {
+      let jsCssCount = 0;
+      let imgCount = 0;
+      let limitJSCSS = 0;
+      let limitImg = 0;
+      let errorRequestCount = 0;
+      requestItemList.map(item => {
+        const url = item.url.split('?')[0]
+        const reg = /(js|css)$/i;
+        const imgReg = /(png|jpg)$/i;
+        if (reg.test(url)) {
+          jsCssCount += 1;
+          item.encodedDataLength > (100 * 1024) && (limitJSCSS += 1)
+        }
+        if (imgReg.test(url)) {
+          imgCount += 1;
+          item.encodedDataLength > (50 * 1024) && (limitImg += 1);
+        }
+        if (item.status >= 400) {
+          errorRequestCount += 1;
+        }
+        return item
+      })
+      return {
+        jsCssCount,
+        imgCount,
+        limitJSCSS,
+        limitImg,
+        errorRequestCount
+      }
+    }
     tab.on('request', logRequest)
     // tab.on('requestfinished', logEndRequest)
     tab.on('requestfailed', logFailRequest)
@@ -148,7 +211,8 @@ module.exports = class Performance {
         setTimeout(() => browser.close())
         
         requests.count.firstScreen = requestTimeList.filter(item => item < this.domContentLoadedReport.firstScreenTimestamp).length
-        
+        requests.size.computedCount = computedAssetSize()
+
         this.log = {
           page: {
             ...analyzer.statistics({
