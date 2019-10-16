@@ -16,6 +16,7 @@ module.exports = class Performance {
   async run (opts = this.opts) {
     let startTimestamp = Date.now() // 开始时间
     let loadsize = 0; // 加载资源大小
+    let firstScreenLoadsize = 0 // 首屏加载资源大小
     let DOMContentLoadedTime = 0 // DOMContentLoaded时间
     // 获取传递参数
     let {
@@ -49,9 +50,6 @@ module.exports = class Performance {
         error: 0,
         success: 0,
         full: 0
-      },
-      size: {
-        full: 0
       }
     }
 
@@ -71,7 +69,12 @@ module.exports = class Performance {
 
     // 监听加载事件,统计资源大小
     client.on('Network.loadingFinished', (e) => {
-      loadsize += e.encodedDataLength
+      if (!this.loadedReport) {
+        loadsize += e.encodedDataLength
+      }
+      if (!this.domContentLoadedReport) {
+        firstScreenLoadsize += e.encodedDataLength
+      }
     })
     
     let settingTasks = [
@@ -112,7 +115,7 @@ module.exports = class Performance {
       //   }
       //   requestObject[interceptedRequest.url()].endTime = (new Date()).valueOf() //请求返回时间
       // })
-      // requests.count.success = requests.count.success + 1
+      requests.count.success = requests.count.success + 1
     }
     function getAutoComputeFirstScreenTime () {
       const autoComputeFirstScreenTime = require('auto-compute-first-screen-time')
@@ -134,16 +137,11 @@ module.exports = class Performance {
     await Promise.all(settingTasks)
 
     const logResult = async () => {
-      
       if (this.loadReport && this.domContentLoadedReport) {
         
         for(var i in requestObject){
           requests.list.push(requestObject[i]);
         }
-  
-        requests.size.full = loadsize / 1024
-        // console.log('firstScreenTime===========', this.domContentLoadedReport);
-        // console.log(this.domContentLoadedReport.firstScreenTime);
         // 完成后关闭浏览器
         setTimeout(() => browser.close())
         
@@ -156,8 +154,13 @@ module.exports = class Performance {
               firstScreenTime: this.domContentLoadedReport.firstScreenTime,
               DOMContentLoadedTime: DOMContentLoadedTime,
             }).pageData,
+            fullRequestNumber: requests.count.full,
+            successRequestNumber: requests.count.success,
+            errorRequestNumber: requests.count.error,
+            firstScreenRequestNumber: requests.count.firstScreen,
+            fullRequestSize: loadsize / 1024,
+            firstScreenRequestSize: firstScreenLoadsize / 1024,
           },
-          requests
         }
         if (this.times < count) {
           await Promise.all(settingTasks)
@@ -190,8 +193,6 @@ module.exports = class Performance {
                   firstScreenTime: result.firstScreenTime,
                   firstScreenTimestamp: (new Date()).valueOf()
                 });
-              } else {
-                console.log(result);
               }
             }
           });

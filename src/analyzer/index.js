@@ -141,8 +141,10 @@ class Analyzer {
 
     for (let item of data) {
       
-      let { pageData, firstScreenTime, DOMContentLoadedTime } = item
-      // console.log(entries)
+      let { pageData, entries, firstScreenTime, DOMContentLoadedTime } = item
+      // for (entry in entries) {
+
+      // }
       let {
         navigationStart,
         domainLookupStart,
@@ -171,8 +173,6 @@ class Analyzer {
       totalDOMReadyTime += this.getDOMReadyTime(navigationStart, domContentLoadedEventEnd)
       totalLoadTime += this.getLoadTime(navigationStart, loadEventEnd)
       totalFirstScreenTime += firstScreenTime
-      console.log(DOMContentLoadedTime);
-      console.log(navigationStart);
       
     }
 
