@@ -153,33 +153,55 @@ module.exports = class Performance {
       return autoComputeFirstScreenTime
     }
     function computedAssetSize () {
-      let jsCssRequestCount = 0;
-      let imgRequestCount = 0;
-      let overSizeJSCSSCount = 0;
-      let overSizeImgCount = 0;
+      // let jsCssRequestCount = 0;
+      // let imgRequestCount = 0;
+      let overSizeJSCSS = 0;
+      let overSizeImg = 0;
+      let overSizeBase64 = 0;
       let errorRequestCount = 0;
-      requestItemList.map(item => {
-        const url = item.url.split('?')[0]
-        const reg = /(js|css)$/i;
-        const imgReg = /(png|jpg)$/i;
-        if (reg.test(url)) {
-          jsCssRequestCount += 1;
-          item.encodedDataLength > (100 * 1024) && (overSizeJSCSSCount += 1)
-        }
-        if (imgReg.test(url)) {
-          imgRequestCount += 1;
-          item.encodedDataLength > (50 * 1024) && (overSizeImgCount += 1);
-        }
-        if (item.status >= 400) {
-          errorRequestCount += 1;
-        }
-        return item
-      })
+      let notCDNAssetCount = 0;
+      try {
+        requestItemList.map(item => {
+          const url = item.url.split('?')[0]
+          const jscssReg = /(js|css)$/i;
+          const imgReg = /(png|jpg)$/i;
+          const base64Reg = /base64/i;
+          let overSize = 0
+          if (jscssReg.test(url)) {
+            // jsCssRequestCount += 1;
+            overSize = item.encodedDataLength - (100 * 1024);
+            (overSize > 0) && (overSizeJSCSS += overSize)
+          } else if (imgReg.test(url)) {
+            // imgRequestCount += 1;
+            overSize = item.encodedDataLength - (50 * 1024);
+            (overSize > 0) && (overSizeImg += overSize);
+          } else if (base64Reg.test(url)) {
+            overSize = item.encodedDataLength - (1 * 1024);
+            (overSize > 0) && (overSizeBase64 += overSize);
+          }
+          // try{
+          //   const cdnReg = /cdn/;
+          //   const integrationReg = /integration/;
+          //   (!cdnReg.test(url) && !integrationReg.test(url)) && (notCDNAssetCount += 1);
+          // }catch(e){
+          //   console.log(e)
+          // }
+          // integrationReg.test(url) && (integrationAssetCount += 1);
+          if (item.status >= 400) {
+            errorRequestCount += 1;
+          }
+          return item
+        })
+      }catch(e){
+        console.log(123, e)
+      }
       return {
-        jsCssRequestCount,
-        imgRequestCount,
-        overSizeJSCSSCount,
-        overSizeImgCount,
+        // jsCssRequestCount,
+        // imgRequestCount,
+        overSizeJSCSS,
+        overSizeImg,
+        overSizeBase64,
+        notCDNAssetCount,
         errorRequestCount
       }
     }
@@ -222,7 +244,7 @@ module.exports = class Performance {
             firstScreenRequestNumber: requests.count.firstScreen,
             fullRequestSize: loadsize / 1024,
             firstScreenRequestSize: firstScreenLoadsize / 1024,
-            ...computedAssetSize()
+            // ...computedAssetSize()
           },
         }
         if (this.times < count) {
