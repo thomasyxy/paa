@@ -11,6 +11,7 @@ module.exports = class Performance {
     this.log = {}
     this.loadReport = null
     this.domContentLoadedReport = null
+    this.networkTimer = null // 网络定时器，500ms内没有请求发起认为可关闭页面
   }
   
   async run (opts = this.opts) {
@@ -79,12 +80,6 @@ module.exports = class Performance {
         }
         return l;
       })
-      if (!this.loadedReport) {
-        loadsize += e.encodedDataLength
-      }
-      if (!this.domContentLoadedReport) {
-        firstScreenLoadsize += e.encodedDataLength
-      }
     })
 
     client.on('Network.requestWillBeSent', (e) => {
@@ -117,9 +112,13 @@ module.exports = class Performance {
 
     // 请求发起事件回调
     function logRequest(interceptedRequest) {
-      // if ()
       requestTimeList.push((new Date()).valueOf())
       requests.count.full = requests.count.full + 1
+      clearTimeout(this.networkTimer)
+      this.networkTimer = null
+      this.networkTimer = setTimeout(() => {
+        logResult()
+      }, 500)
     }
     // 请求发起事件回调
     function logEndRequest(interceptedRequest) {
@@ -220,15 +219,25 @@ module.exports = class Performance {
     const logResult = async () => {
       if (this.loadReport && this.domContentLoadedReport) {
         // 完成后关闭浏览器
-        setTimeout(() => browser.close())
+        // setTimeout(() => browser.close())
         
-        requests.count.firstScreen = requestTimeList.filter(item => item < this.domContentLoadedReport.firstScreenTimestamp).length
+        // 获取首屏请求数
+        requests.count.firstScreen = requestTimeList.filter(item => item < this.domContentLoadedReport.firstScreenTimeStamp).length
+
+        // 获取首屏资源大小
+        requestItemList.map(item => {
+          loadsize += item.encodedDataLength
+          if (item.timestampStart < this.domContentLoadedReport.firstScreenTimeStamp) {
+            firstScreenLoadsize += item.encodedDataLength
+          }
+        })
 
         this.log = {
           page: {
             ...analyzer.statistics({
               ...JSON.parse(this.loadReport),
               firstScreenTime: this.domContentLoadedReport.firstScreenTime,
+              firstScreenTimeStamp: this.domContentLoadedReport.firstScreenTimeStamp,
               DOMContentLoadedTime: DOMContentLoadedTime,
             }).pageData,
             fullRequestNumber: requests.count.full,
@@ -270,7 +279,7 @@ module.exports = class Performance {
               if (result.success) {
                 resolve({
                   firstScreenTime: result.firstScreenTime,
-                  firstScreenTimestamp: (new Date()).valueOf()
+                  firstScreenTimeStamp: (new Date()).valueOf()
                 });
               }
             }
@@ -278,7 +287,6 @@ module.exports = class Performance {
         }).then(result => result).catch(e => e);
         return domContentLoadedPromise
       })
-      logResult()
     }
     
     // 页面onload回调
@@ -295,7 +303,6 @@ module.exports = class Performance {
         }).then(result => result).catch(e => e);
         return loadPromise
       })
-      logResult()
     }
     tab.once('domcontentloaded', domContentLoadedHandler)
     tab.once('load', loadHandler)
