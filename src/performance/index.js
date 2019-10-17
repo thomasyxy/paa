@@ -28,6 +28,8 @@ module.exports = class Performance {
       useragent,
       viewport,
       cookies,
+      localStorage,
+      sessionStorage,
       cache,
       javascript,
       online
@@ -55,11 +57,10 @@ module.exports = class Performance {
         full: 0
       }
     }
-
     if (executablePath) {
       launchOpts.executablePath = executablePath
     }
-
+    
     // 启动浏览器进程
     const browser = await puppeteer.launch(launchOpts)
 
@@ -69,9 +70,39 @@ module.exports = class Performance {
     // 建立CDP连接，开启网络请求相关功能
     const client = await tab.target().createCDPSession();
     await client.send('Network.enable');
-
+    let firstFlag = 0
     // 监听加载事件,统计资源大小
-    client.on('Network.loadingFinished', (e) => {
+    client.on('Network.loadingFinished', async (e) => {
+      if (!firstFlag) {
+        firstFlag = true
+        try{
+          if (localStorage) {
+            localStorage.map(async (ls) => {
+              if (ls.name && ls.value) {
+                console.log(ls.name)
+                await tab.evaluate(() => { 
+                  window.localStorage.setItem(ls.name, JSON.stringify(ls.value))
+                })
+                // await tab.evaluate(() => { 
+                //   window.localStorage.setItem("userInfo", JSON.stringify({"CHANGZHUDZ":null,"GUID":"bd7eed81-c864-4dd8-b457-2bf0e0fea17c","KEHUBH":"910300000000671856","NICHENG":"","RENZHENGBZ":null,"SHENFENZH":"330183199205278940","SHENGSHIQXMC":null,"SHOUJIHAO":"17000000000","TIAOZHUANDZ":null,"TOKEN":"1a00f766-f4fb-471f-9714-f3ad0c81041e","WANSHANBZ":"1","WEIMAIHAO":"910300000000671855","XINGBIE":"2","XINGMING":"测试小零","YONGHUBH":null,"YONGHULB":null,"RongCloudToken":"","ImageUrl":"","IsNewRegister":"0","noPassword":false,"isLogin":true})
+                //   )
+                // })
+              }
+            })
+          }
+          if (sessionStorage) {
+            sessionStorage.map(async (ss) => {
+              if (ss.name && ss.value) {
+                await tab.evaluate(() => {
+                  window.sessionStorage.setItem(ss.name, ss.value)
+                })
+              }
+            })
+          }
+        }catch(err){
+          console.log(err)
+        }
+      }
       requestItemList.map(l => {
         if (l.requestId === e.requestId) {
           l.encodedDataLength = e.encodedDataLength
@@ -81,7 +112,7 @@ module.exports = class Performance {
         return l;
       })
     })
-
+    
     client.on('Network.requestWillBeSent', (e) => {
       // console.log(e)
       requestItemList.push({
