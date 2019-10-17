@@ -142,9 +142,14 @@ class Analyzer {
     for (let item of data) {
       
       let { pageData, entries, firstScreenTime, DOMContentLoadedTime } = item
-      // for (entry in entries) {
-
-      // }
+      
+      console.log(pageData.timeOrigin)
+      for (entry in entries) {
+        if (pageData.timeOrigin + entry.startTime < firstScreenTime) {
+          console.log(1);
+          
+        }
+      }
       let {
         navigationStart,
         domainLookupStart,

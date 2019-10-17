@@ -148,6 +148,7 @@ module.exports = class Performance {
 
     // 请求发起事件回调
     function logRequest(interceptedRequest) {
+      // if ()
       requestTimeList.push((new Date()).valueOf())
       requests.count.full = requests.count.full + 1
     }
@@ -249,10 +250,6 @@ module.exports = class Performance {
 
     const logResult = async () => {
       if (this.loadReport && this.domContentLoadedReport) {
-        
-        for(var i in requestObject){
-          requests.list.push(requestObject[i]);
-        }
         // 完成后关闭浏览器
         setTimeout(() => browser.close())
         
@@ -269,11 +266,12 @@ module.exports = class Performance {
             successRequestNumber: requests.count.success,
             errorRequestNumber: requests.count.error,
             firstScreenRequestNumber: requests.count.firstScreen,
-            fullRequestSize: loadsize / 1024,
-            firstScreenRequestSize: firstScreenLoadsize / 1024,
+            fullRequestSize: (loadsize / 1024).toFixed(2),
+            firstScreenRequestSize: (firstScreenLoadsize / 1024).toFixed(2),
             ...computedAssetSize()
           },
         }
+        
         if (this.times < count) {
           await Promise.all(settingTasks)
           tab.once('load', loadHandler)
@@ -293,7 +291,7 @@ module.exports = class Performance {
         const content = await window.readfile('/util/acfst.js');
         eval(content)
       })
-    
+
       // 页面内部执行脚本
       this.domContentLoadedReport = await tab.evaluate(async() => {
         const domContentLoadedPromise = new Promise((resolve, reject) => {
