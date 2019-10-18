@@ -78,10 +78,9 @@ module.exports = class Performance {
           if (localStorage) {
             localStorage.map(async (ls) => {
               if (ls.name && ls.value) {
-                console.log(ls.name)
-                await tab.evaluate(() => { 
-                  window.localStorage.setItem(ls.name, JSON.stringify(ls.value))
-                })
+                await tab.evaluate((name, value) => { 
+                  window.localStorage.setItem(name, value)
+                }, ls.name, JSON.stringify(ls.value))
                 // await tab.evaluate(() => { 
                 //   window.localStorage.setItem("userInfo", JSON.stringify({"CHANGZHUDZ":null,"GUID":"bd7eed81-c864-4dd8-b457-2bf0e0fea17c","KEHUBH":"910300000000671856","NICHENG":"","RENZHENGBZ":null,"SHENFENZH":"330183199205278940","SHENGSHIQXMC":null,"SHOUJIHAO":"17000000000","TIAOZHUANDZ":null,"TOKEN":"1a00f766-f4fb-471f-9714-f3ad0c81041e","WANSHANBZ":"1","WEIMAIHAO":"910300000000671855","XINGBIE":"2","XINGMING":"测试小零","YONGHUBH":null,"YONGHULB":null,"RongCloudToken":"","ImageUrl":"","IsNewRegister":"0","noPassword":false,"isLogin":true})
                 //   )
@@ -92,9 +91,9 @@ module.exports = class Performance {
           if (sessionStorage) {
             sessionStorage.map(async (ss) => {
               if (ss.name && ss.value) {
-                await tab.evaluate(() => {
-                  window.sessionStorage.setItem(ss.name, ss.value)
-                })
+                await tab.evaluate((name, value) => { 
+                  window.localStorage.setItem(name, value)
+                }, ss.name, JSON.stringify(ss.value))
               }
             })
           }

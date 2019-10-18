@@ -17,9 +17,6 @@
     "localStorage": [{
         "name": "userInfo",
         "value": {"CHANGZHUDZ":null,"GUID":"bd7eed81-c864-4dd8-b457-2bf0e0fea17c","KEHUBH":"910300000000671856","NICHENG":"","RENZHENGBZ":null,"SHENFENZH":"330183199205278940","SHENGSHIQXMC":null,"SHOUJIHAO":"17000000000","TIAOZHUANDZ":null,"TOKEN":"1a00f766-f4fb-471f-9714-f3ad0c81041e","WANSHANBZ":"1","WEIMAIHAO":"910300000000671855","XINGBIE":"2","XINGMING":"测试小零","YONGHUBH":null,"YONGHULB":null,"RongCloudToken":"","ImageUrl":"","IsNewRegister":"0","noPassword":false,"isLogin":true}
-    },{
-        "name": "userInfo1",
-        "value": {"CHANGZHUDZ":null,"GUID":"bd7eed81-c864-4dd8-b457-2bf0e0fea17c","KEHUBH":"910300000000671856","NICHENG":"","RENZHENGBZ":null,"SHENFENZH":"330183199205278940","SHENGSHIQXMC":null,"SHOUJIHAO":"17000000000","TIAOZHUANDZ":null,"TOKEN":"1a00f766-f4fb-471f-9714-f3ad0c81041e","WANSHANBZ":"1","WEIMAIHAO":"910300000000671855","XINGBIE":"2","XINGMING":"测试小零","YONGHUBH":null,"YONGHULB":null,"RongCloudToken":"","ImageUrl":"","IsNewRegister":"0","noPassword":false,"isLogin":true}
     }],
     "count": 1,
     "noCache": "false",
