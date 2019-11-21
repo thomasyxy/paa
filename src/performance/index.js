@@ -3,7 +3,7 @@ const fs = require('fs-extra');
 const path = require('path');
 const Analyzer = require('../analyzer')
 const analyzer = new Analyzer()
-
+const FPS = require('./fps.js');
 module.exports = class Performance {
   constructor (opts) {
     this.opts = opts
@@ -240,49 +240,8 @@ module.exports = class Performance {
     //   for (let i = 0; i < msg.args().length; ++i)
     //     console.log(`${i}: ${msg.args()[i]}`); 
     // });
-    tab.on('framenavigated', async () => {
-      // fps
-      await tab.evaluate(() => { 
-        var rAF = function () {    
-          return (
-            window.requestAnimationFrame ||
-            window.webkitRequestAnimationFrame ||
-            function (callback) {
-              window.setTimeout(callback, 1000 / 60);
-            }
-          );
-        }();
-        var fpsList = []
-        var frame = 0;
-        var allFrameCount = 0;
-        var lastTime = Date.now();
-        var lastFameTime = Date.now();
-        var loop = function () {
-          var now = Date.now();
-          var fs = (now - lastFameTime);
-          var fps = Math.round(1000 / fs);
-        
-          lastFameTime = now;
-          // 不置 0，在动画的开头及结尾记录此值的差值算出 FPS
-          allFrameCount++;
-          frame++;
-        
-          if (now > 100 + lastTime) {
-            var fps = Math.round((frame * 1000) / (now - lastTime));
-            // console.log(`${new Date()} 1S内 FPS：`, fps);
-            fpsList.push(fps)
-            window.localStorage.setItem('FPSList', fpsList)
-            window.localStorage.setItem('allFrameCount', allFrameCount)
-            frame = 0;
-            lastTime = now;
-          };
-          rAF(loop);
-        }
-        window.localStorage.setItem('hiperArr', 'start')
-        // console.log('start:')
-        loop();
-      })
-    })
+    FPS.setFpsRAF(tab) // 设置requestAnimationFrame 计算FPS
+
     if (cookies) {
       settingTasks.push(tab.setCookie(...cookies))
     }
@@ -296,10 +255,8 @@ module.exports = class Performance {
 
     const logResult = async () => {
       if (this.loadReport && this.domContentLoadedReport) {
-        
-        const FPSList = await tab.evaluate(() => {return Promise.resolve(window.localStorage.getItem('FPSList'))});
-        // console.log('fps:', FPSList)
-        // console.log('allFrameCount:', await tab.evaluate(() => {return Promise.resolve(window.localStorage.getItem('allFrameCount'))}))
+        const fpsListObj = await FPS.getFpsList(tab)
+        // console.log(fpsListObj)
         // 完成后关闭浏览器
         setTimeout(() => browser.close())
         
@@ -319,7 +276,9 @@ module.exports = class Performance {
             fullRequestSize: (loadsize / 1024).toFixed(2),
             firstScreenRequestSize: (firstScreenLoadsize / 1024).toFixed(2),
             ...computedAssetSize(),
-            fpsList: FPSList
+            ...fpsListObj
+            // fpsList: FPSList,
+            // imgList: imgList // 超出可视区域的img src列表
           },
         }
         
