@@ -3,7 +3,7 @@ const fs = require('fs-extra');
 const path = require('path');
 const Analyzer = require('../analyzer')
 const analyzer = new Analyzer()
-
+const FPS = require('./fps.js');
 module.exports = class Performance {
   constructor (opts) {
     this.opts = opts
@@ -75,6 +75,35 @@ module.exports = class Performance {
     client.on('Network.loadingFinished', async (e) => {
       if (requestTimes === 2) {
         pageInit()
+      }
+      if (!firstFlag) {
+        firstFlag = true
+        try{
+          if (localStorage) {
+            localStorage.map(async (ls) => {
+              if (ls.name && ls.value) {
+                await tab.evaluate((name, value) => { 
+                  window.localStorage.setItem(name, value)
+                }, ls.name, JSON.stringify(ls.value))
+                // await tab.evaluate(() => { 
+                //   window.localStorage.setItem("userInfo", JSON.stringify({"CHANGZHUDZ":null,"GUID":"bd7eed81-c864-4dd8-b457-2bf0e0fea17c","KEHUBH":"910300000000671856","NICHENG":"","RENZHENGBZ":null,"SHENFENZH":"330183199205278940","SHENGSHIQXMC":null,"SHOUJIHAO":"17000000000","TIAOZHUANDZ":null,"TOKEN":"1a00f766-f4fb-471f-9714-f3ad0c81041e","WANSHANBZ":"1","WEIMAIHAO":"910300000000671855","XINGBIE":"2","XINGMING":"测试小零","YONGHUBH":null,"YONGHULB":null,"RongCloudToken":"","ImageUrl":"","IsNewRegister":"0","noPassword":false,"isLogin":true})
+                //   )
+                // })
+              }
+            })
+          }
+          if (sessionStorage) {
+            sessionStorage.map(async (ss) => {
+              if (ss.name && ss.value) {
+                await tab.evaluate((name, value) => { 
+                  window.localStorage.setItem(name, value)
+                }, ss.name, JSON.stringify(ss.value))
+              }
+            })
+          }
+        }catch(err){
+          console.log(err)
+        }
       }
 
 
@@ -237,6 +266,12 @@ module.exports = class Performance {
     // tab.on('requestfinished', logEndRequest)
     tab.on('requestfailed', logFailRequest)
     tab.on('requestfinished', logSuccessRequest)
+    // tab.on('console', msg => {
+    //   for (let i = 0; i < msg.args().length; ++i)
+    //     console.log(`${i}: ${msg.args()[i]}`); 
+    // });
+    FPS.setFpsRAF(tab) // 设置requestAnimationFrame 计算FPS
+
     if (cookies) {
       settingTasks.push(tab.setCookie(...cookies))
     }
@@ -269,6 +304,43 @@ module.exports = class Performance {
           }
         }
       })
+      if (this.loadReport && this.domContentLoadedReport) {
+        const fpsListObj = await FPS.getFpsList(tab)
+        // console.log(fpsListObj)
+        // 完成后关闭浏览器
+        setTimeout(() => browser.close())
+        
+        requests.count.firstScreen = requestTimeList.filter(item => item < this.domContentLoadedReport.firstScreenTimestamp).length
+
+        this.log = {
+          page: {
+            ...analyzer.statistics({
+              ...JSON.parse(this.loadReport),
+              firstScreenTime: this.domContentLoadedReport.firstScreenTime,
+              DOMContentLoadedTime: DOMContentLoadedTime,
+            }).pageData,
+            fullRequestNumber: requests.count.full,
+            successRequestNumber: requests.count.success,
+            errorRequestNumber: requests.count.error,
+            firstScreenRequestNumber: requests.count.firstScreen,
+            fullRequestSize: (loadsize / 1024).toFixed(2),
+            firstScreenRequestSize: (firstScreenLoadsize / 1024).toFixed(2),
+            ...computedAssetSize(),
+            ...fpsListObj
+            // fpsList: FPSList,
+            // imgList: imgList // 超出可视区域的img src列表
+          },
+        }
+        
+        if (this.times < count) {
+          await Promise.all(settingTasks)
+          tab.once('load', loadHandler)
+          await tab.goto(url, { timeout: 5000, waitUntil: 'load' })
+        } else {
+          // 输出最终结果
+          console.log(JSON.stringify(this.log))
+        }
+      }
 
       this.log = {
         page: {

@@ -172,7 +172,6 @@ class Analyzer {
       totalFirstScreenTime += firstScreenTime
       
     }
-
     // console.log('DNS lookup time:', Util.formatMSToHumanReadable(this.getAverage(totalDNSTime, length)))
     // console.log('TCP connect time:', Util.formatMSToHumanReadable(this.getAverage(totalTCPTime, length)))
     // console.log('TTFB:', Util.formatMSToHumanReadable(this.getAverage(totalTTFBTime, length)))
@@ -190,7 +189,6 @@ class Analyzer {
     // console.log('DOM Ready之后继续进行资源下载的耗时:', Util.formatMSToHumanReadable(this.getAverage(totalAfterDOMReadyTheDownloadTimeOfTheRes, length)))
     // console.log('Load时间:', Util.formatMSToHumanReadable(this.getAverage(totalLoadTime, length)))
     // console.log(`\n`)
-
     return {
       pageData: {
         dnsTime: Util.formatMSToHumanReadable(this.getAverage(totalDNSTime, length)),
