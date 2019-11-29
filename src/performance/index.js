@@ -10,7 +10,7 @@ module.exports = class Performance {
     this.times = 0
     this.log = {}
     this.loadReport = null
-    this.domContentLoadedReport = null
+    this.fristScreenReport = null
     this.networkTimer = null // 网络定时器，500ms内没有请求发起认为可关闭页面
   }
   
@@ -38,7 +38,7 @@ module.exports = class Performance {
     // puppeteer默认配置项
     let launchOpts = {
       headless,
-      headless: false,
+      // headless: false,
       // args: ['--unlimited-storage', '--full-memory-crash-report']
       args: ['--no-sandbox']
     }
@@ -70,39 +70,14 @@ module.exports = class Performance {
     // 建立CDP连接，开启网络请求相关功能
     const client = await tab.target().createCDPSession();
     await client.send('Network.enable');
-    let firstFlag = 0
+    let requestTimes = 0
     // 监听加载事件,统计资源大小
     client.on('Network.loadingFinished', async (e) => {
-      if (!firstFlag) {
-        firstFlag = true
-        try{
-          if (localStorage) {
-            localStorage.map(async (ls) => {
-              if (ls.name && ls.value) {
-                console.log(ls.name)
-                await tab.evaluate(() => { 
-                  window.localStorage.setItem(ls.name, JSON.stringify(ls.value))
-                })
-                // await tab.evaluate(() => { 
-                //   window.localStorage.setItem("userInfo", JSON.stringify({"CHANGZHUDZ":null,"GUID":"bd7eed81-c864-4dd8-b457-2bf0e0fea17c","KEHUBH":"910300000000671856","NICHENG":"","RENZHENGBZ":null,"SHENFENZH":"330183199205278940","SHENGSHIQXMC":null,"SHOUJIHAO":"17000000000","TIAOZHUANDZ":null,"TOKEN":"1a00f766-f4fb-471f-9714-f3ad0c81041e","WANSHANBZ":"1","WEIMAIHAO":"910300000000671855","XINGBIE":"2","XINGMING":"测试小零","YONGHUBH":null,"YONGHULB":null,"RongCloudToken":"","ImageUrl":"","IsNewRegister":"0","noPassword":false,"isLogin":true})
-                //   )
-                // })
-              }
-            })
-          }
-          if (sessionStorage) {
-            sessionStorage.map(async (ss) => {
-              if (ss.name && ss.value) {
-                await tab.evaluate(() => {
-                  window.sessionStorage.setItem(ss.name, ss.value)
-                })
-              }
-            })
-          }
-        }catch(err){
-          console.log(err)
-        }
+      if (requestTimes === 2) {
+        pageInit()
       }
+
+
       requestItemList.map(l => {
         if (l.requestId === e.requestId) {
           l.encodedDataLength = e.encodedDataLength
@@ -111,6 +86,7 @@ module.exports = class Performance {
         }
         return l;
       })
+      requestTimes = requestTimes + 1
     })
     
     client.on('Network.requestWillBeSent', (e) => {
@@ -141,15 +117,38 @@ module.exports = class Performance {
       tab.setRequestInterception(false)
     ]
 
+    async function pageInit () {
+
+      // 注入localstorage
+      // if (localStorage) {
+      //   localStorage.map(async (ls) => {
+      //     if (ls.name && ls.value) {
+      //       await tab.evaluate(() => { 
+      //         window.localStorage.setItem(ls.name, JSON.stringify(ls.value))
+      //       })
+      //     }
+      //   })
+      // }
+      await tab.evaluate(() => {
+        window.localStorage.setItem("userInfo", JSON.stringify({"CHANGZHUDZ":null,"GUID":"bd7eed81-c864-4dd8-b457-2bf0e0fea17c","KEHUBH":"910300000000671856","NICHENG":"","RENZHENGBZ":null,"SHENFENZH":"330183199205278940","SHENGSHIQXMC":null,"SHOUJIHAO":"17000000000","TIAOZHUANDZ":null,"TOKEN":"1a00f766-f4fb-471f-9714-f3ad0c81041e","WANSHANBZ":"1","WEIMAIHAO":"910300000000671855","XINGBIE":"2","XINGMING":"测试小零","YONGHUBH":null,"YONGHULB":null,"RongCloudToken":"","ImageUrl":"","IsNewRegister":"0","noPassword":false,"isLogin":true})
+        )
+      })
+
+      // 注入sessionStorage
+      if (sessionStorage) {
+        sessionStorage.map(async (ss) => {
+          if (ss.name && ss.value) {
+            await tab.evaluate(() => {
+              window.sessionStorage.setItem(ss.name, ss.value)
+            })
+          }
+        })
+      }
+    }
     // 请求发起事件回调
     function logRequest(interceptedRequest) {
       requestTimeList.push((new Date()).valueOf())
       requests.count.full = requests.count.full + 1
-      clearTimeout(this.networkTimer)
-      this.networkTimer = null
-      this.networkTimer = setTimeout(() => {
-        logResult()
-      }, 500)
     }
     // 请求发起事件回调
     function logEndRequest(interceptedRequest) {
@@ -209,12 +208,14 @@ module.exports = class Performance {
           overSize = item.encodedDataLength - (1 * 1024);
           (overSize > 0) && (overSizeBase64 += overSize);
         }
-        try{
-          const cdnReg = /(cdn.myweimai.com|static.qstcdn.com)/;
-          const integrationReg = /integration.m.myweimai.com/;
-          (!cdnReg.test(url) && !integrationReg.test(url)) && (notCDNAssetCount += 1);
-        }catch(e){
-          console.log(e)
+        if (jscssReg.test(url) || imgReg.test(url)) {
+          try{
+            const cdnReg = /(cdn.myweimai.com|static.qstcdn.com|img.qstcdn.com|article.myweimai.com|weimai-yunyin.oss-cn-hangzhou.aliyuncs.com|dev.cdn.myweimai.com)/;
+            const integrationReg = /integration.m.myweimai.com/;
+            (!cdnReg.test(url) && !integrationReg.test(url)) && (notCDNAssetCount += 1);
+          }catch(e){
+            console.log(e)
+          }
         }
         // integrationReg.test(url) && (integrationAssetCount += 1);
         if (item.status >= 400) {
@@ -225,8 +226,8 @@ module.exports = class Performance {
       return {
         // jsCssRequestCount,
         // imgRequestCount,
-        overSizeJSCSS,
-        overSizeImg,
+        overSizeJSCSS: (overSizeJSCSS / 1024).toFixed(2),
+        overSizeImg: (overSizeImg / 1024).toFixed(2),
         overSizeBase64,
         notCDNAssetCount,
         errorRequestCount
@@ -248,47 +249,52 @@ module.exports = class Performance {
     await Promise.all(settingTasks)
 
     const logResult = async () => {
-      if (this.loadReport && this.domContentLoadedReport) {
-        // 完成后关闭浏览器
-        // setTimeout(() => browser.close())
-        
-        // 获取首屏请求数
-        requests.count.firstScreen = requestTimeList.filter(item => item < this.domContentLoadedReport.firstScreenTimeStamp).length
 
-        // 获取首屏资源大小
-        requestItemList.map(item => {
+      if (!this.fristScreenReport || !this.loadReport) {
+        return false
+      }
+      
+      // 完成后关闭浏览器
+      setTimeout(() => browser.close())
+
+      // 获取首屏请求数
+      requests.count.firstScreen = requestTimeList.filter(item => item < this.fristScreenReport.firstScreenTimeStamp).length
+
+      // 获取首屏资源大小
+      requestItemList.map(item => {
+        if (item.encodedDataLength) {
           loadsize += item.encodedDataLength
-          if (item.timestampStart < this.domContentLoadedReport.firstScreenTimeStamp) {
+          if (item.timestamp * 1000 < this.fristScreenReport.firstScreenTimeStamp) {
             firstScreenLoadsize += item.encodedDataLength
           }
-        })
+        }
+      })
 
-        this.log = {
-          page: {
-            ...analyzer.statistics({
-              ...JSON.parse(this.loadReport),
-              firstScreenTime: this.domContentLoadedReport.firstScreenTime,
-              firstScreenTimeStamp: this.domContentLoadedReport.firstScreenTimeStamp,
-              DOMContentLoadedTime: DOMContentLoadedTime,
-            }).pageData,
-            fullRequestNumber: requests.count.full,
-            successRequestNumber: requests.count.success,
-            errorRequestNumber: requests.count.error,
-            firstScreenRequestNumber: requests.count.firstScreen,
-            fullRequestSize: (loadsize / 1024).toFixed(2),
-            firstScreenRequestSize: (firstScreenLoadsize / 1024).toFixed(2),
-            ...computedAssetSize()
-          },
-        }
-        
-        if (this.times < count) {
-          await Promise.all(settingTasks)
-          tab.once('load', loadHandler)
-          await tab.goto(url, { timeout: 5000, waitUntil: 'load' })
-        } else {
-          // 输出最终结果
-          console.log(JSON.stringify(this.log))
-        }
+      this.log = {
+        page: {
+          ...analyzer.statistics({
+            ...JSON.parse(this.loadReport),
+            firstScreenTime: this.fristScreenReport.firstScreenTime,
+            firstScreenTimeStamp: this.fristScreenReport.firstScreenTimeStamp,
+            DOMContentLoadedTime: DOMContentLoadedTime,
+          }).pageData,
+          fullRequestNumber: requests.count.full,
+          successRequestNumber: requests.count.success,
+          errorRequestNumber: requests.count.error,
+          firstScreenRequestNumber: requests.count.firstScreen,
+          fullRequestSize: (loadsize / 1024).toFixed(2),
+          firstScreenRequestSize: (firstScreenLoadsize / 1024).toFixed(2),
+          ...computedAssetSize()
+        },
+      }
+      
+      if (this.times < count) {
+        await Promise.all(settingTasks)
+        tab.once('load', loadHandler)
+        await tab.goto(url, { timeout: 5000, waitUntil: 'load' })
+      } else {
+        // 输出最终结果
+        console.log(JSON.stringify(this.log))
       }
     }
 
@@ -302,8 +308,8 @@ module.exports = class Performance {
       })
 
       // 页面内部执行脚本
-      this.domContentLoadedReport = await tab.evaluate(async() => {
-        const domContentLoadedPromise = new Promise((resolve, reject) => {
+      this.fristScreenReport = await tab.evaluate(async() => {
+        const fristScreenPromise = new Promise((resolve, reject) => {
           // 获取首屏时间
           window.autoComputeFirstScreenTime({
             onReport: function (result) {
@@ -316,8 +322,9 @@ module.exports = class Performance {
             }
           });
         }).then(result => result).catch(e => e);
-        return domContentLoadedPromise
+        return fristScreenPromise
       })
+      logResult()
     }
     
     // 页面onload回调
@@ -334,6 +341,7 @@ module.exports = class Performance {
         }).then(result => result).catch(e => e);
         return loadPromise
       })
+      logResult()
     }
     tab.once('domcontentloaded', domContentLoadedHandler)
     tab.once('load', loadHandler)
