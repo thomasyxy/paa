@@ -4,13 +4,14 @@ const path = require('path');
 const Analyzer = require('../analyzer')
 const analyzer = new Analyzer()
 const FPS = require('./fps.js');
+const {cdnReg, urlReg, jscssReg, imgReg, base64Reg} = require('../config');
 module.exports = class Performance {
   constructor (opts) {
-    this.opts = opts
+    this.opts = opts // 入参透传
     this.times = 0
     this.log = {}
-    this.loadReport = null
-    this.fristScreenReport = null
+    this.loadReport = null // onload数据
+    this.fristScreenReport = null // 首屏报告数据
     this.networkTimer = null // 网络定时器，500ms内没有请求发起认为可关闭页面
   }
   
@@ -39,7 +40,7 @@ module.exports = class Performance {
     // puppeteer默认配置项
     let launchOpts = {
       headless,
-      headless: false,
+      // headless: false, // 用于本地调试，发布时必须注释掉，因为linux系统不支持
       // args: ['--unlimited-storage', '--full-memory-crash-report']
       args: ['--no-sandbox']
     }
@@ -48,7 +49,7 @@ module.exports = class Performance {
     let requestItemList = []
     
     let requestObject = {}
-    // 请求结果初始参数
+    // 页面请求结果初始参数
     let requests = {
       list: [],
       count: {
@@ -61,7 +62,7 @@ module.exports = class Performance {
     if (executablePath) {
       launchOpts.executablePath = executablePath
     }
-    
+
     // 启动浏览器进程
     const browser = await puppeteer.launch(launchOpts)
 
@@ -181,11 +182,9 @@ module.exports = class Performance {
       let overSizeBase64 = 0;
       let errorRequestCount = 0;
       let notCDNAssetCount = 0;
+
       requestItemList.map(item => {
         const url = item.url.split('?')[0]
-        const jscssReg = /(js|css)$/i;
-        const imgReg = /(png|jpg)$/i;
-        const base64Reg = /base64/i;
         let overSize = 0
         if (jscssReg.test(url)) {
           // jsCssRequestCount += 1;
@@ -201,14 +200,12 @@ module.exports = class Performance {
         }
         if (jscssReg.test(url) || imgReg.test(url)) {
           try{
-            const cdnReg = /(cdn.myweimai.com|static.qstcdn.com|img.qstcdn.com|article.myweimai.com|weimai-yunyin.oss-cn-hangzhou.aliyuncs.com|dev.cdn.myweimai.com)/;
-            const integrationReg = /integration.m.myweimai.com/;
-            (!cdnReg.test(url) && !integrationReg.test(url)) && (notCDNAssetCount += 1);
+            (!cdnReg.test(url) && !urlReg.test(url)) && (notCDNAssetCount += 1);
           }catch(e){
             console.log(e)
           }
         }
-        // integrationReg.test(url) && (integrationAssetCount += 1);
+        // urlReg.test(url) && (integrationAssetCount += 1);
         if (item.status >= 400) {
           errorRequestCount += 1;
         }
