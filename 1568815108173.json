@@ -1,5 +1,5 @@
 {
-    "url": "http://integration.m.myweimai.com/weimai/before_birth.html?key=%7B%22quyubh%22%3A%22910500000019411947%22%2C%22idnumber%22%3A%22330825199304015921%22%2C%22deviceid%22%3A%22%23qza4n0myqzutm0jgmc00mdqylufdnzqtq0fbmkjdrefdqtbg%23546l5bcp5yuk55qeiglqag9uzq%3D%3D%22%2C%22liushuihao%22%3A%221456178927415341057%22%2C%22location%22%3A%22120.015909%2C30.281531%22%2C%22platformno%22%3A%22910500000019411945%22%2C%22guid%22%3A%221ed06808-828e-45c5-8ef8-fc3148e879ba%22%2C%22appversion%22%3A%225.12.0%22%7D&closeWebview",
+    "url": "https://integration.m.myweimai.com/new/healthscale/evaluation_result.html?recordId=1493855612491018241",
     "viewport": {
         "isMobile": true,
         "width": 375,
@@ -9,13 +9,13 @@
     "cookies": [
         {
             "name": "x-weimai-token",
-            "value": "95faf257-8420-49d6-b7f3-946e0d217b89",
+            "value": "7cb89837-599c-4dfc-ae39-29d0f9a266e3",
             "domain": "integration.m.myweimai.com"
         }
     ],
     "localStorage": [{
         "name": "userInfo",
-        "value": {"CHANGZHUDZ":null,"GUID":"bd7eed81-c864-4dd8-b457-2bf0e0fea17c","KEHUBH":"910300000000671856","NICHENG":"","RENZHENGBZ":null,"SHENFENZH":"330183199205278940","SHENGSHIQXMC":null,"SHOUJIHAO":"17000000000","TIAOZHUANDZ":null,"TOKEN":"1a00f766-f4fb-471f-9714-f3ad0c81041e","WANSHANBZ":"1","WEIMAIHAO":"910300000000671855","XINGBIE":"2","XINGMING":"测试小零","YONGHUBH":null,"YONGHULB":null,"RongCloudToken":"","ImageUrl":"","IsNewRegister":"0","noPassword":false,"isLogin":true}
+        "value": {"CHANGZHUDZ":null,"GUID":"7ef7a51f-7546-4685-a136-190c8712aad7","KEHUBH":"1498280338474946561","NICHENG":null,"RENZHENGBZ":null,"SHENFENZH":"330825199304015921","SHENGSHIQXMC":null,"SHOUJIHAO":"13805716001","TIAOZHUANDZ":null,"TOKEN":"288c1049-c494-4a47-816a-af6118d4ea0b","WANSHANBZ":"1","WEIMAIHAO":"1498280338382671873","XINGBIE":"2","XINGMING":"若榴","YONGHUBH":null,"YONGHULB":null,"RongCloudToken":"","ImageUrl":"","IsNewRegister":"0","noPassword":true,"isLogin":true}
     }],
     "count": 1,
     "noCache": "false",

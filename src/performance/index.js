@@ -19,6 +19,7 @@ module.exports = class Performance {
     let loadsize = 0; // 加载资源大小
     let firstScreenLoadsize = 0 // 首屏加载资源大小
     let DOMContentLoadedTime = 0 // DOMContentLoaded时间
+    let firstFlag = true
     // 获取传递参数
     let {
       executablePath,
@@ -38,7 +39,7 @@ module.exports = class Performance {
     // puppeteer默认配置项
     let launchOpts = {
       headless,
-      // headless: false,
+      headless: false,
       // args: ['--unlimited-storage', '--full-memory-crash-report']
       args: ['--no-sandbox']
     }
@@ -70,43 +71,13 @@ module.exports = class Performance {
     // 建立CDP连接，开启网络请求相关功能
     const client = await tab.target().createCDPSession();
     await client.send('Network.enable');
-    let requestTimes = 0
     // 监听加载事件,统计资源大小
     client.on('Network.loadingFinished', async (e) => {
-      if (requestTimes === 2) {
+      if (firstFlag) {
         pageInit()
+        firstFlag = false
       }
-      if (!firstFlag) {
-        firstFlag = true
-        try{
-          if (localStorage) {
-            localStorage.map(async (ls) => {
-              if (ls.name && ls.value) {
-                await tab.evaluate((name, value) => { 
-                  window.localStorage.setItem(name, value)
-                }, ls.name, JSON.stringify(ls.value))
-                // await tab.evaluate(() => { 
-                //   window.localStorage.setItem("userInfo", JSON.stringify({"CHANGZHUDZ":null,"GUID":"bd7eed81-c864-4dd8-b457-2bf0e0fea17c","KEHUBH":"910300000000671856","NICHENG":"","RENZHENGBZ":null,"SHENFENZH":"330183199205278940","SHENGSHIQXMC":null,"SHOUJIHAO":"17000000000","TIAOZHUANDZ":null,"TOKEN":"1a00f766-f4fb-471f-9714-f3ad0c81041e","WANSHANBZ":"1","WEIMAIHAO":"910300000000671855","XINGBIE":"2","XINGMING":"测试小零","YONGHUBH":null,"YONGHULB":null,"RongCloudToken":"","ImageUrl":"","IsNewRegister":"0","noPassword":false,"isLogin":true})
-                //   )
-                // })
-              }
-            })
-          }
-          if (sessionStorage) {
-            sessionStorage.map(async (ss) => {
-              if (ss.name && ss.value) {
-                await tab.evaluate((name, value) => { 
-                  window.localStorage.setItem(name, value)
-                }, ss.name, JSON.stringify(ss.value))
-              }
-            })
-          }
-        }catch(err){
-          console.log(err)
-        }
-      }
-
-
+      
       requestItemList.map(l => {
         if (l.requestId === e.requestId) {
           l.encodedDataLength = e.encodedDataLength
@@ -115,7 +86,6 @@ module.exports = class Performance {
         }
         return l;
       })
-      requestTimes = requestTimes + 1
     })
     
     client.on('Network.requestWillBeSent', (e) => {
@@ -147,29 +117,21 @@ module.exports = class Performance {
     ]
 
     async function pageInit () {
-
-      // 注入localstorage
-      // if (localStorage) {
-      //   localStorage.map(async (ls) => {
-      //     if (ls.name && ls.value) {
-      //       await tab.evaluate(() => { 
-      //         window.localStorage.setItem(ls.name, JSON.stringify(ls.value))
-      //       })
-      //     }
-      //   })
-      // }
-      await tab.evaluate(() => {
-        window.localStorage.setItem("userInfo", JSON.stringify({"CHANGZHUDZ":null,"GUID":"bd7eed81-c864-4dd8-b457-2bf0e0fea17c","KEHUBH":"910300000000671856","NICHENG":"","RENZHENGBZ":null,"SHENFENZH":"330183199205278940","SHENGSHIQXMC":null,"SHOUJIHAO":"17000000000","TIAOZHUANDZ":null,"TOKEN":"1a00f766-f4fb-471f-9714-f3ad0c81041e","WANSHANBZ":"1","WEIMAIHAO":"910300000000671855","XINGBIE":"2","XINGMING":"测试小零","YONGHUBH":null,"YONGHULB":null,"RongCloudToken":"","ImageUrl":"","IsNewRegister":"0","noPassword":false,"isLogin":true})
-        )
-      })
-
-      // 注入sessionStorage
+      if (localStorage) {
+        localStorage.map(async (ls) => {
+          if (ls.name && ls.value) {
+            await tab.evaluate((name, value) => { 
+              window.localStorage.setItem(name, value)
+            }, ls.name, JSON.stringify(ls.value))
+          }
+        })
+      }
       if (sessionStorage) {
         sessionStorage.map(async (ss) => {
           if (ss.name && ss.value) {
-            await tab.evaluate(() => {
-              window.sessionStorage.setItem(ss.name, ss.value)
-            })
+            await tab.evaluate((name, value) => { 
+              window.localStorage.setItem(name, value)
+            }, ss.name, JSON.stringify(ss.value))
           }
         })
       }
@@ -288,6 +250,7 @@ module.exports = class Performance {
       if (!this.fristScreenReport || !this.loadReport) {
         return false
       }
+      const fpsListObj = await FPS.getFpsList(tab)
       
       // 完成后关闭浏览器
       setTimeout(() => browser.close())
@@ -304,43 +267,6 @@ module.exports = class Performance {
           }
         }
       })
-      if (this.loadReport && this.domContentLoadedReport) {
-        const fpsListObj = await FPS.getFpsList(tab)
-        // console.log(fpsListObj)
-        // 完成后关闭浏览器
-        setTimeout(() => browser.close())
-        
-        requests.count.firstScreen = requestTimeList.filter(item => item < this.domContentLoadedReport.firstScreenTimestamp).length
-
-        this.log = {
-          page: {
-            ...analyzer.statistics({
-              ...JSON.parse(this.loadReport),
-              firstScreenTime: this.domContentLoadedReport.firstScreenTime,
-              DOMContentLoadedTime: DOMContentLoadedTime,
-            }).pageData,
-            fullRequestNumber: requests.count.full,
-            successRequestNumber: requests.count.success,
-            errorRequestNumber: requests.count.error,
-            firstScreenRequestNumber: requests.count.firstScreen,
-            fullRequestSize: (loadsize / 1024).toFixed(2),
-            firstScreenRequestSize: (firstScreenLoadsize / 1024).toFixed(2),
-            ...computedAssetSize(),
-            ...fpsListObj
-            // fpsList: FPSList,
-            // imgList: imgList // 超出可视区域的img src列表
-          },
-        }
-        
-        if (this.times < count) {
-          await Promise.all(settingTasks)
-          tab.once('load', loadHandler)
-          await tab.goto(url, { timeout: 5000, waitUntil: 'load' })
-        } else {
-          // 输出最终结果
-          console.log(JSON.stringify(this.log))
-        }
-      }
 
       this.log = {
         page: {
@@ -356,7 +282,10 @@ module.exports = class Performance {
           firstScreenRequestNumber: requests.count.firstScreen,
           fullRequestSize: (loadsize / 1024).toFixed(2),
           firstScreenRequestSize: (firstScreenLoadsize / 1024).toFixed(2),
-          ...computedAssetSize()
+          ...computedAssetSize(),
+          ...fpsListObj
+          // fpsList: FPSList,
+          // imgList: imgList // 超出可视区域的img src列表
         },
       }
       
