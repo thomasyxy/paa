@@ -21,5 +21,12 @@
     "noCache": "false",
     "noJavascript": "false",
     "noOnline": "false",
-    "useragent": "Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1"
+    "useragent": "Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1",
+    "cdnOrigin": "/(cdn.myweimai.com|static.qstcdn.com|img.qstcdn.com|article.myweimai.com|weimai-yunyin.oss-cn-hangzhou.aliyuncs.com|dev.cdn.myweimai.com)/",
+    "domainOrigin": "/integration.m.myweimai.com/",
+    "jscssOrigin": "/(js|css)$/",
+    "imgOrigin": "/(png|jpg)$/",
+    "jscssLimit": 100,
+    "imgLimit": 50,
+    "base64Limit": 1
 }

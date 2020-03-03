@@ -4,8 +4,8 @@ const requiredNodeVersion = require('../package.json').engines.node
 
 if (!semver.satisfies(process.version, requiredNodeVersion)) {
   console.log(chalk.red(
-    `\n[Hiper] Minimum Node version not met:` +
-    `\nYou are using Node ${process.version}, but Hiper ` +
+    `\n[Paa] Minimum Node version not met:` +
+    `\nYou are using Node ${process.version}, but Paa ` +
     `requries Node ${requiredNodeVersion}.\nPlease upgrade your Node version.\n`
   ))
   process.exit(1)

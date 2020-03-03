@@ -17,24 +17,24 @@ module.exports = class Outputer {
       afterDOMReadyDownloadTime,
       loadTime
     } = total
-    if (global.__hiper__.banner) {
+    if (global.__paa__.banner) {
       console.log(JSON.stringify(data))
-      // console.log(figlet.textSync('Hiper'))
+      // console.log(figlet.textSync('Paa'))
       // console.log('\n')
-      // // console.log(`🚀 加载 ${global.__hiper__.url} ${global.__hiper__.count} 次 用时 ${(global.__hiper__.runInterval) / 1000} s`)
-      // console.log(`🚀 It takes ${(global.__hiper__.runInterval) / 1000} s to load \`${global.__hiper__.url}\` ${global.__hiper__.count} times`)
+      // // console.log(`🚀 加载 ${global.__paa__.url} ${global.__paa__.count} 次 用时 ${(global.__paa__.runInterval) / 1000} s`)
+      // console.log(`🚀 It takes ${(global.__paa__.runInterval) / 1000} s to load \`${global.__paa__.url}\` ${global.__paa__.count} times`)
       // console.log('\n')
     }
     // new Line()
     //   .padding(2)
     //   .column('Run interval', 32)
-    //   .column(`${(global.__hiper__.runInterval) / 1000} s`, 20, [clc.cyan])
+    //   .column(`${(global.__paa__.runInterval) / 1000} s`, 20, [clc.cyan])
     //   .fill()
     //   .output()
     // new Line()
     //   .padding(2)
     //   .column('Total load times', 32)
-    //   .column(global.__hiper__.count.toString(), 20, [clc.cyan])
+    //   .column(global.__paa__.count.toString(), 20, [clc.cyan])
     //   .fill()
     //   .output()
     // new Line()
@@ -85,7 +85,7 @@ module.exports = class Outputer {
     //   .column(loadTime, 20, [clc.cyan])
     //   .fill()
     //   .output()
-    // if (global.__hiper__.banner) {
+    // if (global.__paa__.banner) {
     //   console.log('\n')
     // }
   }

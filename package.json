@@ -9,8 +9,8 @@
   },
   "author": "yinxueyuan",
   "email": "yinxueyuan233@gmail.com",
-  "name": "hiper-weimai",
-  "version": "0.2.5",
+  "name": "paa",
+  "version": "0.0.1",
   "description": "🚀 A statistical analysis tool for performance testing",
   "keywords": [
     "statistical",
@@ -30,7 +30,7 @@
     "headless",
     "broswer"
   ],
-  "homepage": "https://github.com/pod4g/hiper",
+  "homepage": "https://github.com/wm/paa",
   "main": "./src/index.js",
   "engines": {
     "node": ">=8.0.0",
@@ -42,7 +42,7 @@
     "authors": "git log --format='%aN <%aE>' | sort -u"
   },
   "bin": {
-    "hiper-weimai": "./bin/index.js"
+    "paa": "./bin/index.js"
   },
   "license": "MIT",
   "dependencies": {

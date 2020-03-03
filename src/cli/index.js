@@ -55,6 +55,8 @@ module.exports = class Cli {
       .option('--no-cache', 'disable cache (default: false)')
       .option('--no-javascript', 'disable javascript (default: false)')
       .option('--no-online', 'disable network (defalut: false)')
+      .option('--tracing', 'enable tracing (defalut: false)')
+      .option('--metrics', 'enable metrics (defalut: false)')
       .parse(process.argv)
 
     let {
@@ -66,7 +68,9 @@ module.exports = class Cli {
       banner,
       cache,
       javascript,
-      online
+      online,
+      tracing,
+      metrics
     } = program
 
     if (!config) config = {}
@@ -125,10 +129,12 @@ module.exports = class Cli {
       banner,
       cache,
       javascript,
-      online
+      online,
+      tracing,
+      metrics,
     })
 
-    global.__hiper__ = opts
+    global.__paa__ = opts
 
     return opts
   }

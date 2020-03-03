@@ -4,7 +4,6 @@ const path = require('path');
 const Analyzer = require('../analyzer')
 const analyzer = new Analyzer()
 const FPS = require('./fps.js');
-const {cdnReg, urlReg, jscssReg, imgReg, base64Reg} = require('../config');
 module.exports = class Performance {
   constructor (opts) {
     this.opts = opts // 入参透传
@@ -34,8 +33,23 @@ module.exports = class Performance {
       sessionStorage,
       cache,
       javascript,
-      online
+      online,
+      metrics,
+      tracing,
+      cdnOrigin,
+      domainOrigin,
+      jscssOrigin,
+      imgOrigin,
+      jscssLimit = 100,
+      imgLimit = 50,
+      base64Limit = 1
     } = opts
+
+    let base64Reg = /base64/i
+    let cdnReg = new RegExp(cdnOrigin);
+    let domainReg = new RegExp(domainOrigin);
+    let jscssReg = new RegExp(jscssOrigin, "i");
+    let imgReg = new RegExp(imgOrigin, "i");
 
     // puppeteer默认配置项
     let launchOpts = {
@@ -136,6 +150,29 @@ module.exports = class Performance {
           }
         })
       }
+      // 载入首屏统计脚本
+      await tab.evaluate(async() => {
+        const content = await window.readfile('/util/acfst.js');
+        eval(content)
+      })
+
+      // 页面内部执行脚本
+      this.fristScreenReport = await tab.evaluate(async() => {
+        const fristScreenPromise = new Promise((resolve, reject) => {
+          // 获取首屏时间
+          window.autoComputeFirstScreenTime({
+            onReport: function (result) {
+              if (result.success) {
+                resolve({
+                  firstScreenTime: result.firstScreenTime,
+                  firstScreenTimeStamp: (new Date()).valueOf()
+                });
+              }
+            }
+          });
+        }).then(result => result).catch(e => e);
+        return fristScreenPromise
+      })
     }
     // 请求发起事件回调
     function logRequest(interceptedRequest) {
@@ -186,26 +223,23 @@ module.exports = class Performance {
       requestItemList.map(item => {
         const url = item.url.split('?')[0]
         let overSize = 0
+        console.log(url);
+        
         if (jscssReg.test(url)) {
           // jsCssRequestCount += 1;
-          overSize = item.encodedDataLength - (100 * 1024);
+          overSize = item.encodedDataLength - (jscssLimit * 1024);
           (overSize > 0) && (overSizeJSCSS += overSize)
         } else if (imgReg.test(url)) {
           // imgRequestCount += 1;
-          overSize = item.encodedDataLength - (50 * 1024);
+          overSize = item.encodedDataLength - (imgLimit * 1024);
           (overSize > 0) && (overSizeImg += overSize);
         } else if (base64Reg.test(url)) {
-          overSize = item.encodedDataLength - (1 * 1024);
+          overSize = item.encodedDataLength - (base64Limit * 1024);
           (overSize > 0) && (overSizeBase64 += overSize);
         }
         if (jscssReg.test(url) || imgReg.test(url)) {
-          try{
-            (!cdnReg.test(url) && !urlReg.test(url)) && (notCDNAssetCount += 1);
-          }catch(e){
-            console.log(e)
-          }
+          (!cdnReg.test(url) && !domainReg.test(url)) && (notCDNAssetCount += 1);
         }
-        // urlReg.test(url) && (integrationAssetCount += 1);
         if (item.status >= 400) {
           errorRequestCount += 1;
         }
@@ -244,10 +278,24 @@ module.exports = class Performance {
 
     const logResult = async () => {
 
+      // console.log('fristScreenReport:' + this.fristScreenReport);
+      // console.log('loadReport:' + this.loadReport);
+      
       if (!this.fristScreenReport || !this.loadReport) {
         return false
       }
       const fpsListObj = await FPS.getFpsList(tab)
+
+      if (tracing) {
+        // 结束跟踪
+        await tab.tracing.stop();
+      }
+
+      if (metrics) {
+        // 返回页面的运行时指标
+        const metrics = await tab.metrics();
+        console.info(metrics);
+      }
       
       // 完成后关闭浏览器
       setTimeout(() => browser.close())
@@ -299,29 +347,7 @@ module.exports = class Performance {
     // 页面domcontentloaded回调
     const domContentLoadedHandler = async () => {
       DOMContentLoadedTime = (new Date()).valueOf()
-      // 载入首屏统计脚本
-      await tab.evaluate(async() => {
-        const content = await window.readfile('/util/acfst.js');
-        eval(content)
-      })
 
-      // 页面内部执行脚本
-      this.fristScreenReport = await tab.evaluate(async() => {
-        const fristScreenPromise = new Promise((resolve, reject) => {
-          // 获取首屏时间
-          window.autoComputeFirstScreenTime({
-            onReport: function (result) {
-              if (result.success) {
-                resolve({
-                  firstScreenTime: result.firstScreenTime,
-                  firstScreenTimeStamp: (new Date()).valueOf()
-                });
-              }
-            }
-          });
-        }).then(result => result).catch(e => e);
-        return fristScreenPromise
-      })
       logResult()
     }
     
@@ -339,6 +365,7 @@ module.exports = class Performance {
         }).then(result => result).catch(e => e);
         return loadPromise
       })
+
       logResult()
     }
     tab.once('domcontentloaded', domContentLoadedHandler)
@@ -356,10 +383,15 @@ module.exports = class Performance {
         });
       });
     });
-  
+
+    if (tracing) {
+      // 开始跟踪
+      await tab.tracing.start({ path: `tracing_${Date.parse( new Date())}.json` });
+    }
+
     // 跳转页面
     await tab.goto(url, { timeout: 5000, waitUntil: 'load' })
 
-    global.__hiper__.runInterval = Date.now() - startTimestamp
+    global.__paa__.runInterval = Date.now() - startTimestamp
   }
 }

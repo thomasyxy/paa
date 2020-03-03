@@ -69,7 +69,7 @@ module.exports = {
           };
           rAF(loop);
         }
-        window.localStorage.setItem('hiperArr', 'start')
+        window.localStorage.setItem('paaArr', 'start')
         // console.log('start:')
         loop();
       })

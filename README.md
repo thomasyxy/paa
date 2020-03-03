@@ -1,225 +1,120 @@
-**English** | [中文](./README.zh-CN.md)
+# 介绍
 
-<p align="center"><img src="http://7xt9n8.com2.z0.glb.clouddn.com/hiper-logo-512.png" alt="Hiper" width="175"></p>
+paa === Performance Analyze Assistant
 
-<p align="center">🚀 A statistical analysis tool for performance testing</p>
+由于在内部开发工程中，hiper无法满足需求并存在一些使用问题未得到解决，基于hiper重新开发，用于帮助开发者和测试同学更好更全面的定制页面测试方案，得到想要的性能数据
+另外还希望在这个工具的基础上尽可能多的扩展一些日常开发的小工具，例如：视觉还原度分析、页面灰度测试、UI自动化、埋点分析等
 
-<p align="center">
-    <img src="https://img.shields.io/circleci/project/vuejs/vue/dev.svg" alt="">
-    <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="">
-    <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="">
-</p>
+### 特性
+* 返回基础的页面性能数据：dns耗时、TCP耗时、首字节返回耗时、白屏时间、DOMContentLoaded时间、DOMReady时间、load时间等
+* 首屏时间：基于 [`auto-compute-first-screen-time`](https://github.com/hoperyy/auto-compute-first-screen-time) 获取，具体原理可以看作者的介绍：[如何自动获取首屏时间](https://github.com/weidian-inc/weidian-tech-blog/issues/1)
+* 页面资源请求分析：资源文件体积计算、资源文件体积校验、资源CDN域名校验、请求返回正确性校验、请求数量校验
+* FPS：大致估测帧数，用于分析目标页面是否卡顿
+* 支持 cookie、localstorage、sessionstorage、user-agent 自定义传入
+* 支持模拟移动端设备、控制屏幕尺寸、切换横屏
+* 支持离线模式、页面缓存、禁用脚本
+* 支持命令行参数和文件两种方式执行
+* 跟踪功能：分析浏览器活动同时生成报告，当前目录下`tracing_<date>.json`，在chrome下打开 chrome://tracing/ 导入后查看浏览器活动热力图
+* 获取页面的运行时指标，生成报告，当前目录下
 
-## Hiper
+# 使用文档
 
-The name is short for **Hi** **per**formance <del>Or **Hi**gh **per**formance</del>
+### 安装
 
-## Important
-
-Hi guys, Please present your issue in English 
-
-请使用英语提issue
-
-## Install
-
-``` bash
-npm install hiper -g
-
-# or use yarn:
-# yarn global add hiper
+```
+npm install -g paa
 ```
 
-## The output
+### 开始使用
 
-Notice: `It takes period (m)s to load ...`. the `period` means **This test takes time**. So -n go up and the period go up. not a bug
- 
-![Hiper](http://7xt9n8.com2.z0.glb.clouddn.com/hiper9.png)
+```
+paa https://m.myweimai.com/new/mall/index.html?areaId=0 -n 1
+```
 
-## PerformanceTiming
+你也可以通过配置文件的方式来执行命令，传入的参数更加清晰易懂
 
-![timing](http://7xt9n8.com2.z0.glb.clouddn.com/PerformanceTiming.png)
+```
+paa -c text.json
 
-| Key                            | Value                                        |
-| :----------------------------- | :------------------------------------------- |
-| DNS lookup time                | domainLookupEnd          - domainLookupStart |
-| TCP connect time               | connectEnd               - connectStart      |
-| TTFB                           | responseStart            - requestStart      |
-| Download time of the page      | responseEnd              - responseStart     |
-| After DOM Ready download time  | domComplete              - domInteractive    |
-| White screen time              | domInteractive           - navigationStart   |
-| DOM Ready time                 | domContentLoadedEventEnd - navigationStart   |
-| Load time                      | loadEventEnd             - navigationStart   |
+// text.json
+{
+    "url": "http://integration.m.myweimai.com/new/mall/index.html?areaId=0",
+    "viewport": {
+        "isMobile": true,
+        "width": 375,
+        "height": 667,
+        "deviceScaleFactor": 2
+    },
+    "cookies": [
+        {
+            "name": "token",
+            "value": "7cb89837-599c-4dfc-ae39-29d0f9a266e3",
+            "domain": "m.myweimai.com"
+        }
+    ],
+    "localStorage": [{
+        "name": "userInfo",
+        "value": {
+            "name":"若榴"
+         }
+    }],
+    "count": 1,
+    "noCache": "false",
+    "noJavascript": "false",
+    "noOnline": "false",
+    "useragent": "Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1"
+}
+```
 
-https://developer.mozilla.org/en-US/docs/Web/API/PerformanceTiming
-
-## Usage
-
-```bash
-hiper --help
-
-Usage: hiper [options] [url]
-
-🚀 A statistical analysis tool for performance testing
-
+```
 Options:
 
-   -v, --version                output the version number
-   -n, --count <n>              specified loading times (default: 20)
-   -c, --config <path>          load the configuration file
-   -u, --useragent <ua>         to set the useragent
-   -H, --headless [b]           whether to use headless mode (default: true)
-   -e, --executablePath <path>  use the specified chrome browser
-   --no-cache                   disable cache (default: false)
-   --no-javascript              disable javascript (default: false)
-   --no-online                  disable network (defalut: false)
-   -h, --help                   output usage information
+   -v, --version                输出版本号
+   -n, --count <n>              指定加载次数（默认20次）
+   -c, --config <path>           载入指定的配置文件
+   -u, --useragent <ua>         设置useragent
+   -H, --headless [b]           是否使用无头模式（默认为true）
+   -e, --executablePath <path>  使用指定的Chrome浏览器
+   --no-cache                   禁用缓存（默认为false）
+   --no-javascript              禁用JavaScript (默认为false)
+   --no-online                  禁用网络（默认为false）
+   --tracing                    开启浏览器活动分析
+   --metrics                    开启页面的运行时指标收集
+   -h, --help                   输出帮助信息
 ```
 
-For instance
 
-```bash
- # We can omit the protocol header if has omited, the protocol header will be `https://`
+### 返回结果
 
- # The simplest usage
- hiper baidu.com
-
- # if the url has any parameter, surround the url with double quotes
- hiper "baidu.com?a=1&b=2"
-
- #  Load the specified page 100 times
- hiper -n 100 "baidu.com?a=1&b=2"
-
- #  Load the specified page 100 times without `cache`
- hiper -n 100 "baidu.com?a=1&b=2" --no-cache
-
- #  Load the specified page 100 times without `javascript`
- hiper -n 100 "baidu.com?a=1&b=2" --no-javascript
- 
- #  Load the specified page 100 times with `headless = false`
- hiper -n 100 "baidu.com?a=1&b=2" -H false
-
- #  Load the specified page 100 times with set `useragent`
- hiper -n 100 "baidu.com?a=1&b=2" -u "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36"
-```
-
-## Config
-
-#### Support `.json` and `.js` config
-
-1. **json**
-
-```javascript
-{
-   // options Pointing to a specific chrome executable, this configuration is generally not required unless you want to test a specific version of chrome
-   "executablePath": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-   // required The url you want to test
-   "url": "https://example.com",
-   // options Cookies required for this test. It's usually a cookie for login information Array | Object
-   "cookies": [{
-      "name": "token",
-      "value": "9+cL224Xh6VuRT",
-      "domain": "example.com",
-      "path": "/",
-      "size": 294,
-      "httpOnly": true
-   }],
-   // options default: 20 Test times
-   "count": 100,
-   // options default: true Whether to use headless mode 
-   "headless": true,
-   // options default: false Disable cache 
-   "noCache": false,
-   // options default: false Disable javascript
-   "noJavascript": false,
-   // options default: false Disable network
-   "noOnline": false,
-   // options Set the useragent information
-   "useragent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36",
-   // options Set the viewport information
-   "viewport": {
-      // options
-      "width": 375,
-      // options
-      "height": 812,
-      // options default: 1 devicePixelRatio
-      "deviceScaleFactor": 3,
-      // options default: false Whether to simulate mobile
-      "isMobile": false,
-      // options default: false Whether touch events are supported
-      "hasTouch": false,
-      // options default: false Is it horizontal or not
-      "isLandscape": false
-   }
-}
-```
-
-2. **js**
-
-Having a JS file for config allows people to use ENV variables. For example, let's say I want to test the site on an authenticated state. I can pass some cookie that is used to identify me through ENV variables and having a JS based config file makes this simple. For example
-
-```javascript
-
-module.exports = {
-    ....
-    cookies:  [{
-        name: 'token',
-        value: process.env.authtoken,
-        domain: 'example.com',
-        path: '/',
-        httpOnly: true
-    }],
-    ....
-}
-```
-
-``` bash
-# Load the above configuration file (Let's say this file is under /home/)
-hiper -c /home/config.json
-
-# Or you can also use JS files for configuration
-hiper -c /home/config.js
-```
-
-## Pain point
-
-After we have developed a project or optimized the performance of a project, 
-
-how do we measure the performance of this project?
-
-A common approach is to look at the data in the `performance` and `network` in the `Dev Tool`, record a few key performance metrics, and refresh them a few times before looking at those performance metrics,
-
-Sometimes we find that due to the small sample size, the current **Network/CPU/Memory** load is heavily impacted, and sometimes the optimized project is slower than before the optimization. 
-
-If there is a tool, request web page many times, and then taking out the various performance indicators averaging, we can **very accurately** know the optimization is positive or negative. 
-
-In addition, you can also make a comparison and get **accurate data** about **how much you have optimized**. This tool is designed to solve the pain point.
-
-> At the same time, this tool is also a good tool for us to learn about the "browser's process of load and rendering" and "performance optimization", so that we don't get wrong conclusions when there are too few samples
-
-## Roadmap
-
-1. Better documentation
-2. i18n
-3. Increase the analysis statistics of resource items loaded on the page
-4. Statistical reports can be generated
-5. Data visualization
-
-## Contributing
-
-1. Fork it
-2. Create your feature branch (git checkout -b my-new-feature)
-3. Commit your changes (git commit -am 'Add some feature')
-4. Push to the branch (git push origin my-new-feature)
-5. Create new Pull Request
-
-## License
-
-[MIT](http://opensource.org/licenses/MIT)
-
-Welcome Star and PR
-
-Copyright (c) 2018 liyanfeng(pod4g)
+* dnsTime: DNS 服务作用于网络连接之前，将域名解析为 IP 地址供后续流程进行连接，DNS 查询时，会先在本地缓存中尝试查找，如果不存在或是记录过期，就继续向 DNS 服务器发起递归查询,这里的 DNS 服务器一般就是运营商的 DNS 服务器
+* tcpTime: TCP连接的建立，需要经历3个报文的交互过程，沟通相关连接参数，这个过程称为三次握手
+* TTFB: 首字节时间，浏览器开始收到服务器响应数据的时间(后台处理时间+重定向时间)
+* pageDownloadTime: html下载耗时
+* whiteScreenTime: 白屏时间，浏览器从响应用户输入网址地址，到浏览器开始显示内容的时间
+* DOMContentLoadedTime: 当初始的 HTML 文档被完全加载和解析完成之后，DOMContentLoaded 事件被触发，而无需等待样式表、图像和子框架的完成加载
+* DOMReadyTime: domready时间，表示DOMContentLoaded事件完成到浏览器发起任何请求之前的时间
+* afterDOMReadyDownloadTime: 解析dom树耗时，表示浏览器html文档解析完毕到html文档完全解析完毕的时间
+* loadTime: load 应该仅用于检测一个完全加载的页面 当一个资源及其依赖资源已完成加载时，将触发load事件
+* firstScreenTime: 首屏时间，参考[如何自动获取首屏时间](https://github.com/weidian-inc/weidian-tech-blog/issues/1)
+* fullRequestNumber: 完整请求数，直到页面完全加载前发出的请求
+* successRequestNumber: 成功请求数
+* errorRequestNumber: 错误请求数，当页面的请求失败时触发，比如某个请求超时了
+* firstScreenRequestNumber: 首屏请求数，截止到firstScreenTime首屏时间前的请求数量
+* fullRequestSize: 页面总请求体积大小
+* firstScreenRequestSize: 首屏请求体积，截止到firstScreenTime首屏时间前的请求体积大小
+* overSizeJSCSS: 超出预计js、css资源大小限制部分`jscssLimit`的体积
+* overSizeImg: 超出预计图片资源大小限制部分`imgLimit`的体积
+* overSizeBase64: 超出预计base64资源大小限制部分`base64Limit`的体积
+* notCDNAssetCount: 不在CDN白名单内的资源请求数
+* errorRequestCount: 请求异常数量（status >= 400）
+* FPSList: 页面内fps的打点
 
 
-
->>>>>>> master
+# TODO
+* 页面性能变化趋势，优化前后结果比对，分析优化收益是否满足预期
+* 优化FPS数据准确性
+* 支持以命令行表格形式展示数据
+* GZIP压缩校验
+* 图片压缩校验
+* 模拟地理位置，用于模拟api接口调用环境和需要灰度的情况
+* 支持提供模拟更多设备的用户代理和视口的选项

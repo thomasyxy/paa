@@ -4,4 +4,7 @@ module.exports = {
   jscssReg: /(js|css)$/i,
   imgReg: /(png|jpg)$/i,
   base64Reg: /base64/i,
+  jscssLimit: 100 * 1024,
+  imgLimit: 50 * 1024,
+  base64Limit: 1 * 1024
 }
