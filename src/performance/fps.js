@@ -24,9 +24,14 @@ module.exports = {
       }
       return strImg;
     });
-
+    const Fs = FPSList.split(',')
+    if (Fs.length > 10) {
+      Fs.pop();
+      Fs.shift();
+    }
     return {
       FPSList,
+      Fs: Fs.join(','),
       imgList // 获取超出可视区域高度的图片列表 img src
     }
   },
