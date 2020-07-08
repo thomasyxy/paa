@@ -4,6 +4,9 @@ const path = require('path');
 const Analyzer = require('../analyzer')
 const analyzer = new Analyzer()
 const FPS = require('./fps.js');
+
+const fileFunc = require('./file.js');
+
 module.exports = class Performance {
   constructor (opts) {
     this.opts = opts // 入参透传
@@ -61,7 +64,10 @@ module.exports = class Performance {
     let requestTimeList = []
 
     let requestItemList = []
-    
+    let requestErrorList = []
+    let requestFinishedList = []
+    let responseItemList = []
+
     let requestObject = {}
     // 页面请求结果初始参数
     let requests = {
@@ -79,7 +85,6 @@ module.exports = class Performance {
 
     // 启动浏览器进程
     const browser = await puppeteer.launch(launchOpts)
-
     // 打开tab
     const tab = await browser.newPage()
 
@@ -98,6 +103,7 @@ module.exports = class Performance {
           l.encodedDataLength = e.encodedDataLength
           l.timestampEnd = e.timestamp
           l.timestamp = l.timestampEnd - l.timestampStart + l.wallTime
+          l.useTime = (l.timestampEnd - l.timestampStart) * 1000 // ms
         }
         return l;
       })
@@ -109,17 +115,17 @@ module.exports = class Performance {
         requestId: e.requestId,
         url: e.request.url,
         method: e.request.method,
-
+        postData: e.request.postData,
         wallTime: e.wallTime,
         timestampStart: e.timestamp // 系统启动时间 MonotonicTime
       })
-      // console.log(e.requestId, e.wallTime, e.timestamp, e.request.url)// , e.request.url, e.request.method)
     })
     client.on('Network.responseReceived', (e) => {
       requestItemList.map(l => {
         if (l.requestId === e.requestId) {
           l.timing = e.response.timing
           l.status = e.response.status
+          l.mimeType = e.response.mimeType
         }
         return l;
       })
@@ -150,29 +156,7 @@ module.exports = class Performance {
           }
         })
       }
-      // 载入首屏统计脚本
-      await tab.evaluate(async() => {
-        const content = await window.readfile('/util/acfst.js');
-        eval(content)
-      })
-
-      // 页面内部执行脚本
-      this.fristScreenReport = await tab.evaluate(async() => {
-        const fristScreenPromise = new Promise((resolve, reject) => {
-          // 获取首屏时间
-          window.autoComputeFirstScreenTime({
-            onReport: function (result) {
-              if (result.success) {
-                resolve({
-                  firstScreenTime: result.firstScreenTime,
-                  firstScreenTimeStamp: (new Date()).valueOf()
-                });
-              }
-            }
-          });
-        }).then(result => result).catch(e => e);
-        return fristScreenPromise
-      })
+      
     }
     // 请求发起事件回调
     function logRequest(interceptedRequest) {
@@ -192,6 +176,7 @@ module.exports = class Performance {
     }
     // 请求失败事件回调
     function logFailRequest(interceptedRequest) {
+      requestErrorList.push(interceptedRequest)
       requests.count.error = requests.count.error + 1
     }
     // 请求响应事件回调
@@ -220,6 +205,43 @@ module.exports = class Performance {
       let errorRequestCount = 0;
       let notCDNAssetCount = 0;
 
+      const newUNList = requestItemList.map(e => {
+        const { url, method, status, useTime, encodedDataLength, bufferLength, mimeType, type, text } = e
+        return {
+          url, method, status, useTime, encodedDataLength, bufferLength, mimeType, type, text
+        }
+      })
+      // const un = {unqualifiedSRC: {
+      //   errorApi: newUNList.filter(e => e.status > 299 || e.states < 200),
+      //   longTimeApi: newUNList.filter(e => e.useTime > 200),
+      //   bigIMG: newUNList.filter(e => e.type === 'image' && e.bufferLength >= imgLimit * 1024),
+      //   bigAssets: newUNList.filter(e => ['stylesheet', 'script', 'font', 'media'].includes(e.type)  && e.bufferLength >= jscssLimit * 1024),
+      //   notCDN: newUNList.filter(e => (jscssReg.test(e.url) || imgReg.test(e.url)) && !cdnReg.test(e.url) && !domainReg.test(e.url)),
+      // }}
+      // try{
+      //   fileFunc({
+      //     json: JSON.stringify({
+      //       reqList: requestItemList
+      //       // finished: requestFinishedList,
+      //       // error: requestErrorList
+      //     })
+      //   })
+      //   fileFunc({
+      //     name: 'un_',
+      //     json: JSON.stringify(un)
+      //   })
+      //   fileFunc({
+      //     name: 'simple_',
+      //     json: JSON.stringify({
+      //       reqList: newJSON
+      //       // finished: requestFinishedList,
+      //       // error: requestErrorList
+      //     })
+      //   })
+      // }catch(e){
+      //   console.log('error:',e )
+      // }
+      
       requestItemList.map(item => {
         const url = item.url.split('?')[0]
         let overSize = 0
@@ -245,6 +267,7 @@ module.exports = class Performance {
         }
         return item
       })
+      
       return {
         // jsCssRequestCount,
         // imgRequestCount,
@@ -252,13 +275,46 @@ module.exports = class Performance {
         overSizeImg: (overSizeImg / 1024).toFixed(2),
         overSizeBase64,
         notCDNAssetCount,
-        errorRequestCount
+        errorRequestCount,
+        unqualifiedSRC: {
+          allList: newUNList,
+          errorApi: newUNList.filter(e => e.status > 299 || e.states < 200),
+          longTimeApi: newUNList.filter(e => e.useTime > 200),
+          bigIMG: newUNList.filter(e => e.type === 'image' && e.bufferLength >= imgLimit * 1024),
+          bigAssets: newUNList.filter(e => ['stylesheet', 'script', 'font', 'media'].includes(e.type)  && e.bufferLength >= jscssLimit * 1024),
+          notCDN: newUNList.filter(e => (jscssReg.test(e.url) || imgReg.test(e.url)) && !cdnReg.test(e.url) && !domainReg.test(e.url)),
+        }
+        // document，stylesheet，image，media，font，script，texttrack，
+        // xhr，fetch，eventsource，websocket，manifest，other
+        // --页面首屏失败请求的数量(个)指标：增加请求失败接口查看功能，显示在该指标下方，点击展示失败的请求接口，输出的请求接口数据：请求url、Status Code、入参、响应结果
+        // --服务器响应时间：增加请求超过200ms的接口查看功能，显示在该指标下方，点击展示超出200ms的请求，输出的数据：请求url、响应时间、Status Code、入参、响应结果
+        // --图片资源超出总大小：增加图片资源>50KB的请求查看功能，显示在该指标下方，点击展开对应的请求，输出的数据：请求url、资源大小
+        // --Assets超出总大小：增加单个Asserts大小>100KB的请求查看功能，显示在该指标下方，点击展开对应的请求，输出的数据：请求url、资源大小
+        // --所有资源都存放在CDN：增加未存放在CDN上资源的查看功能，显示在该指标下方，点击展开对应的请求，输出的数据：请求url、入参、响应结果
+
       }
     }
     tab.on('request', logRequest)
     // tab.on('requestfinished', logEndRequest)
     tab.on('requestfailed', logFailRequest)
     tab.on('requestfinished', logSuccessRequest)
+    tab.on('response', async (e) => {
+      try{
+        const item = {
+          url: e.url(),
+          bufferLength: (await e.buffer()).length || 0,
+          type: e.request().resourceType()
+        }
+        // document，stylesheet，image，media，font，script，texttrack，
+        // xhr，fetch，eventsource，websocket，manifest，other
+        if (!['document', 'image', 'script','stylesheet'].includes(e.request().resourceType())) {
+          item.text = await e.text()
+        }
+        responseItemList.push(item)
+      }catch(err){
+        // console.log(err)
+      }
+    })
     // tab.on('console', msg => {
     //   for (let i = 0; i < msg.args().length; ++i)
     //     console.log(`${i}: ${msg.args()[i]}`); 
@@ -280,7 +336,6 @@ module.exports = class Performance {
 
       // console.log('fristScreenReport:' + this.fristScreenReport);
       // console.log('loadReport:' + this.loadReport);
-      
       if (!this.fristScreenReport || !this.loadReport) {
         return false
       }
@@ -296,12 +351,23 @@ module.exports = class Performance {
         const metrics = await tab.metrics();
         console.info(metrics);
       }
-      
       // 完成后关闭浏览器
       setTimeout(() => browser.close())
 
       // 获取首屏请求数
       requests.count.firstScreen = requestTimeList.filter(item => item < this.fristScreenReport.firstScreenTimeStamp).length
+
+      requestItemList = requestItemList.map(req => {
+        const resp = responseItemList.filter(resI => resI.url === req.url)[0]
+        if (resp) {
+          return {
+            ...req,
+            ...resp,
+          }
+        }
+        return {...req}
+      })
+      // console.log(requestItemList.length, responseItemList.length)
 
       // 获取首屏资源大小
       requestItemList.map(item => {
@@ -347,6 +413,29 @@ module.exports = class Performance {
     // 页面domcontentloaded回调
     const domContentLoadedHandler = async () => {
       DOMContentLoadedTime = (new Date()).valueOf()
+      // 载入首屏统计脚本
+      await tab.evaluate(async() => {
+        const content = await window.readfile('/util/acfst.js');
+        eval(content)
+      })
+
+      // 页面内部执行脚本
+      this.fristScreenReport = await tab.evaluate(async() => {
+        const fristScreenPromise = new Promise((resolve, reject) => {
+          // 获取首屏时间
+          window.autoComputeFirstScreenTime({
+            onReport: function (result) {
+              if (result.success) {
+                resolve({
+                  firstScreenTime: result.firstScreenTime,
+                  firstScreenTimeStamp: (new Date()).valueOf()
+                });
+              }
+            }
+          });
+        }).then(result => result).catch(e => e);
+        return fristScreenPromise
+      })
 
       logResult()
     }
@@ -354,7 +443,7 @@ module.exports = class Performance {
     // 页面onload回调
     const loadHandler = async () => {
       this.times = this.times + 1
-      
+
       // 页面内部执行脚本
       this.loadReport = await tab.evaluate(async() => {
         const loadPromise = new Promise((resolve, reject) => {
