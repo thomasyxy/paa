@@ -131,7 +131,7 @@ module.exports = class Performance {
       tab.setRequestInterception(false)
     ]
 
-    async function pageInit () {
+    const pageInit = async () => {
       if (localStorage) {
         localStorage.map(async (ls) => {
           if (ls.name && ls.value) {
@@ -223,7 +223,7 @@ module.exports = class Performance {
       requestItemList.map(item => {
         const url = item.url.split('?')[0]
         let overSize = 0
-        console.log(url);
+        // console.log(url);
         
         if (jscssReg.test(url)) {
           // jsCssRequestCount += 1;

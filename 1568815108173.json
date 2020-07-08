@@ -1,5 +1,5 @@
 {
-    "url": "http://integration.m.myweimai.com/new/mall/index.html?areaId=0",
+    "url": "https://taobao.com",
     "viewport": {
         "isMobile": true,
         "width": 375,
@@ -8,22 +8,22 @@
     },
     "cookies": [
         {
-            "name": "x-weimai-token",
-            "value": "7cb89837-599c-4dfc-ae39-29d0f9a266e3",
-            "domain": "integration.m.myweimai.com"
+            "name": "token",
+            "value": "111111111",
+            "domain": "taobao.com"
         }
     ],
     "localStorage": [{
         "name": "userInfo",
-        "value": {"CHANGZHUDZ":null,"GUID":"7ef7a51f-7546-4685-a136-190c8712aad7","KEHUBH":"1498280338474946561","NICHENG":null,"RENZHENGBZ":null,"SHENFENZH":"330825199304015921","SHENGSHIQXMC":null,"SHOUJIHAO":"13805716001","TIAOZHUANDZ":null,"TOKEN":"288c1049-c494-4a47-816a-af6118d4ea0b","WANSHANBZ":"1","WEIMAIHAO":"1498280338382671873","XINGBIE":"2","XINGMING":"若榴","YONGHUBH":null,"YONGHULB":null,"RongCloudToken":"","ImageUrl":"","IsNewRegister":"0","noPassword":true,"isLogin":true}
+        "value": {"name":"haha"}
     }],
     "count": 1,
     "noCache": "false",
     "noJavascript": "false",
     "noOnline": "false",
     "useragent": "Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1",
-    "cdnOrigin": "/(cdn.myweimai.com|static.qstcdn.com|img.qstcdn.com|article.myweimai.com|weimai-yunyin.oss-cn-hangzhou.aliyuncs.com|dev.cdn.myweimai.com)/",
-    "domainOrigin": "/integration.m.myweimai.com/",
+    "cdnOrigin": "/(cdn.domain.com|static.domain.com)/",
+    "domainOrigin": "/taobao.com/",
     "jscssOrigin": "/(js|css)$/",
     "imgOrigin": "/(png|jpg)$/",
     "jscssLimit": 100,
