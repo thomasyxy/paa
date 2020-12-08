@@ -28,7 +28,7 @@ npm install -g paa
 ### 开始使用
 
 ```
-paa https://m.myweimai.com/new/mall/index.html?areaId=0 -n 1
+paa https://baidu.com -n 1
 ```
 
 你也可以通过配置文件的方式来执行命令，传入的参数更加清晰易懂
@@ -38,7 +38,7 @@ paa -c text.json
 
 // text.json
 {
-    "url": "http://integration.m.myweimai.com/new/mall/index.html?areaId=0",
+    "url": "http://baidu.com",
     "viewport": {
         "isMobile": true,
         "width": 375,
@@ -55,7 +55,7 @@ paa -c text.json
     "localStorage": [{
         "name": "userInfo",
         "value": {
-            "name":"若榴"
+            "name":"hhh"
          }
     }],
     "count": 1,
