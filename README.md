@@ -49,7 +49,7 @@ paa -c text.json
         {
             "name": "token",
             "value": "7cb89837-599c-4dfc-ae39-29d0f9a266e3",
-            "domain": "m.myweimai.com"
+            "domain": "baidu.com"
         }
     ],
     "localStorage": [{
